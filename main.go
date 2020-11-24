@@ -18,18 +18,20 @@ package main
 
 import (
 	"flag"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
+	"os"
 	"time"
 
 	kubeinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/klog/v2"
 	// Uncomment the following line to load the gcp plugin (only required to authenticate against GKE clusters).
 	// _ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 
-	clientset "k8s.io/sample-controller/pkg/generated/clientset/versioned"
-	informers "k8s.io/sample-controller/pkg/generated/informers/externalversions"
-	"k8s.io/sample-controller/pkg/signals"
+	clientset "k8s.io/log-controller/pkg/generated/clientset/versioned"
+	informers "k8s.io/log-controller/pkg/generated/informers/externalversions"
+	"k8s.io/log-controller/pkg/signals"
 )
 
 var (
@@ -43,12 +45,18 @@ func main() {
 
 	// set up signals so we handle the first shutdown signal gracefully
 	stopCh := signals.SetupSignalHandler()
-
-	cfg, err := clientcmd.BuildConfigFromFlags(masterURL, kubeconfig)
+	var cfg *rest.Config
+	var err error
+	if os.Getenv("LOG.ENV") == "PROD" {
+		cfg, err = rest.InClusterConfig()
+	} else {
+		cfg, err = clientcmd.BuildConfigFromFlags(masterURL, kubeconfig)
+	}
 	if err != nil {
 		klog.Fatalf("Error building kubeconfig: %s", err.Error())
 	}
 
+	//kubeClient, err := kubernetes.NewForConfig(cfg)
 	kubeClient, err := kubernetes.NewForConfig(cfg)
 	if err != nil {
 		klog.Fatalf("Error building kubernetes clientset: %s", err.Error())
@@ -59,12 +67,12 @@ func main() {
 		klog.Fatalf("Error building example clientset: %s", err.Error())
 	}
 
-	kubeInformerFactory := kubeinformers.NewSharedInformerFactory(kubeClient, time.Second*30)
-	exampleInformerFactory := informers.NewSharedInformerFactory(exampleClient, time.Second*30)
+	kubeInformerFactory := kubeinformers.NewSharedInformerFactory(kubeClient, time.Second*10)
+	exampleInformerFactory := informers.NewSharedInformerFactory(exampleClient, time.Second*10)
 
-	controller := NewController(kubeClient, exampleClient,
-		kubeInformerFactory.Apps().V1().Deployments(),
-		exampleInformerFactory.Samplecontroller().V1alpha1().Foos())
+	controller := NewController(kubeClient,
+		exampleClient,
+		exampleInformerFactory.Logcontroller().V1alpha1().Logs())
 
 	// notice that there is no need to run Start methods in a separate goroutine. (i.e. go kubeInformerFactory.Start(stopCh)
 	// Start method is non-blocking and runs all registered informers in a dedicated goroutine.
@@ -77,6 +85,22 @@ func main() {
 }
 
 func init() {
-	flag.StringVar(&kubeconfig, "kubeconfig", "", "Path to a kubeconfig. Only required if out-of-cluster.")
+	flag.StringVar(&kubeconfig, "kubeconfig", "test.kubeconfig", "Path to a kubeconfig. Only required if out-of-cluster.")
 	flag.StringVar(&masterURL, "master", "", "The address of the Kubernetes API server. Overrides any value in kubeconfig. Only required if out-of-cluster.")
 }
+
+//func main() {
+//
+//	i := 0
+//	c := cron.New(cron.WithSeconds())
+//	spec := "*/5 * * * * ?"
+//	c.AddFunc(spec, func() {
+//		i++
+//		fmt.Println("1234")
+//		log.Println("cron running:", i)
+//	})
+//	c.Start()
+//
+//	select {}
+//
+//}

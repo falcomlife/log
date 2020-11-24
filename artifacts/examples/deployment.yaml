@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: log
+  namespace: common
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: log
+  template:
+    metadata:
+      labels:
+        app: log
+    spec:
+      containers:
+        - command:
+            - /opt/log-controller
+          image: registry.cn-hangzhou.aliyuncs.com/cotte-internal/log:0.0.1
+          imagePullPolicy: Always
+          name: log
+          resources:
+            limits:
+              cpu: 500m
+              memory: 1200Mi
+            requests:
+              cpu: 50m
+              memory: 1000Mi
+      serviceAccountName: default

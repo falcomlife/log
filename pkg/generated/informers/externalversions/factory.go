@@ -27,9 +27,9 @@ import (
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	cache "k8s.io/client-go/tools/cache"
-	versioned "k8s.io/sample-controller/pkg/generated/clientset/versioned"
-	internalinterfaces "k8s.io/sample-controller/pkg/generated/informers/externalversions/internalinterfaces"
-	samplecontroller "k8s.io/sample-controller/pkg/generated/informers/externalversions/samplecontroller"
+	versioned "k8s.io/log-controller/pkg/generated/clientset/versioned"
+	internalinterfaces "k8s.io/log-controller/pkg/generated/informers/externalversions/internalinterfaces"
+	logcontroller "k8s.io/log-controller/pkg/generated/informers/externalversions/logcontroller"
 )
 
 // SharedInformerOption defines the functional option type for SharedInformerFactory.
@@ -172,9 +172,9 @@ type SharedInformerFactory interface {
 	ForResource(resource schema.GroupVersionResource) (GenericInformer, error)
 	WaitForCacheSync(stopCh <-chan struct{}) map[reflect.Type]bool
 
-	Samplecontroller() samplecontroller.Interface
+	Logcontroller() logcontroller.Interface
 }
 
-func (f *sharedInformerFactory) Samplecontroller() samplecontroller.Interface {
-	return samplecontroller.New(f, f.namespace, f.tweakListOptions)
+func (f *sharedInformerFactory) Logcontroller() logcontroller.Interface {
+	return logcontroller.New(f, f.namespace, f.tweakListOptions)
 }

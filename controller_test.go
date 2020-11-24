@@ -33,9 +33,9 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 
-	samplecontroller "k8s.io/sample-controller/pkg/apis/samplecontroller/v1alpha1"
-	"k8s.io/sample-controller/pkg/generated/clientset/versioned/fake"
-	informers "k8s.io/sample-controller/pkg/generated/informers/externalversions"
+	logcontroller "k8s.io/log-controller/pkg/apis/logcontroller/v1alpha1"
+	"k8s.io/log-controller/pkg/generated/clientset/versioned/fake"
+	informers "k8s.io/log-controller/pkg/generated/informers/externalversions"
 )
 
 var (
@@ -49,7 +49,7 @@ type fixture struct {
 	client     *fake.Clientset
 	kubeclient *k8sfake.Clientset
 	// Objects to put in the store.
-	fooLister        []*samplecontroller.Foo
+	logLister        []*logcontroller.Log
 	deploymentLister []*apps.Deployment
 	// Actions expected to happen on the client.
 	kubeactions []core.Action
@@ -67,14 +67,14 @@ func newFixture(t *testing.T) *fixture {
 	return f
 }
 
-func newFoo(name string, replicas *int32) *samplecontroller.Foo {
-	return &samplecontroller.Foo{
-		TypeMeta: metav1.TypeMeta{APIVersion: samplecontroller.SchemeGroupVersion.String()},
+func newLog(name string, replicas *int32) *logcontroller.Log {
+	return &logcontroller.Log{
+		TypeMeta: metav1.TypeMeta{APIVersion: logcontroller.SchemeGroupVersion.String()},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: metav1.NamespaceDefault,
 		},
-		Spec: samplecontroller.FooSpec{
+		Spec: logcontroller.LogSpec{
 			DeploymentName: fmt.Sprintf("%s-deployment", name),
 			Replicas:       replicas,
 		},
@@ -89,14 +89,13 @@ func (f *fixture) newController() (*Controller, informers.SharedInformerFactory,
 	k8sI := kubeinformers.NewSharedInformerFactory(f.kubeclient, noResyncPeriodFunc())
 
 	c := NewController(f.kubeclient, f.client,
-		k8sI.Apps().V1().Deployments(), i.Samplecontroller().V1alpha1().Foos())
+		i.Logcontroller().V1alpha1().Logs())
 
-	c.foosSynced = alwaysReady
-	c.deploymentsSynced = alwaysReady
+	c.logsSynced = alwaysReady
 	c.recorder = &record.FakeRecorder{}
 
-	for _, f := range f.fooLister {
-		i.Samplecontroller().V1alpha1().Foos().Informer().GetIndexer().Add(f)
+	for _, f := range f.logLister {
+		i.Logcontroller().V1alpha1().Logs().Informer().GetIndexer().Add(f)
 	}
 
 	for _, d := range f.deploymentLister {
@@ -106,15 +105,15 @@ func (f *fixture) newController() (*Controller, informers.SharedInformerFactory,
 	return c, i, k8sI
 }
 
-func (f *fixture) run(fooName string) {
-	f.runController(fooName, true, false)
+func (f *fixture) run(logName string) {
+	f.runController(logName, true, false)
 }
 
-func (f *fixture) runExpectError(fooName string) {
-	f.runController(fooName, true, true)
+func (f *fixture) runExpectError(logName string) {
+	f.runController(logName, true, true)
 }
 
-func (f *fixture) runController(fooName string, startInformers bool, expectError bool) {
+func (f *fixture) runController(logName string, startInformers bool, expectError bool) {
 	c, i, k8sI := f.newController()
 	if startInformers {
 		stopCh := make(chan struct{})
@@ -123,11 +122,11 @@ func (f *fixture) runController(fooName string, startInformers bool, expectError
 		k8sI.Start(stopCh)
 	}
 
-	err := c.syncHandler(fooName)
+	err := c.syncHandler(logName)
 	if !expectError && err != nil {
-		f.t.Errorf("error syncing foo: %v", err)
+		f.t.Errorf("error syncing log: %v", err)
 	} else if expectError && err == nil {
-		f.t.Error("expected error syncing foo, got nil")
+		f.t.Error("expected error syncing log, got nil")
 	}
 
 	actions := filterInformerActions(f.client.Actions())
@@ -215,8 +214,8 @@ func filterInformerActions(actions []core.Action) []core.Action {
 	ret := []core.Action{}
 	for _, action := range actions {
 		if len(action.GetNamespace()) == 0 &&
-			(action.Matches("list", "foos") ||
-				action.Matches("watch", "foos") ||
+			(action.Matches("list", "logs") ||
+				action.Matches("watch", "logs") ||
 				action.Matches("list", "deployments") ||
 				action.Matches("watch", "deployments")) {
 			continue
@@ -235,17 +234,17 @@ func (f *fixture) expectUpdateDeploymentAction(d *apps.Deployment) {
 	f.kubeactions = append(f.kubeactions, core.NewUpdateAction(schema.GroupVersionResource{Resource: "deployments"}, d.Namespace, d))
 }
 
-func (f *fixture) expectUpdateFooStatusAction(foo *samplecontroller.Foo) {
-	action := core.NewUpdateAction(schema.GroupVersionResource{Resource: "foos"}, foo.Namespace, foo)
+func (f *fixture) expectUpdateLogStatusAction(log *logcontroller.Log) {
+	action := core.NewUpdateAction(schema.GroupVersionResource{Resource: "logs"}, log.Namespace, log)
 	// TODO: Until #38113 is merged, we can't use Subresource
 	//action.Subresource = "status"
 	f.actions = append(f.actions, action)
 }
 
-func getKey(foo *samplecontroller.Foo, t *testing.T) string {
-	key, err := cache.DeletionHandlingMetaNamespaceKeyFunc(foo)
+func getKey(log *logcontroller.Log, t *testing.T) string {
+	key, err := cache.DeletionHandlingMetaNamespaceKeyFunc(log)
 	if err != nil {
-		t.Errorf("Unexpected error getting key for foo %v: %v", foo.Name, err)
+		t.Errorf("Unexpected error getting key for log %v: %v", log.Name, err)
 		return ""
 	}
 	return key
@@ -253,64 +252,64 @@ func getKey(foo *samplecontroller.Foo, t *testing.T) string {
 
 func TestCreatesDeployment(t *testing.T) {
 	f := newFixture(t)
-	foo := newFoo("test", int32Ptr(1))
+	log := newLog("test", int32Ptr(1))
 
-	f.fooLister = append(f.fooLister, foo)
-	f.objects = append(f.objects, foo)
+	f.logLister = append(f.logLister, log)
+	f.objects = append(f.objects, log)
 
-	expDeployment := newDeployment(foo)
+	expDeployment := newDeployment(log)
 	f.expectCreateDeploymentAction(expDeployment)
-	f.expectUpdateFooStatusAction(foo)
+	f.expectUpdateLogStatusAction(log)
 
-	f.run(getKey(foo, t))
+	f.run(getKey(log, t))
 }
 
 func TestDoNothing(t *testing.T) {
 	f := newFixture(t)
-	foo := newFoo("test", int32Ptr(1))
-	d := newDeployment(foo)
+	log := newLog("test", int32Ptr(1))
+	d := newDeployment(log)
 
-	f.fooLister = append(f.fooLister, foo)
-	f.objects = append(f.objects, foo)
+	f.logLister = append(f.logLister, log)
+	f.objects = append(f.objects, log)
 	f.deploymentLister = append(f.deploymentLister, d)
 	f.kubeobjects = append(f.kubeobjects, d)
 
-	f.expectUpdateFooStatusAction(foo)
-	f.run(getKey(foo, t))
+	f.expectUpdateLogStatusAction(log)
+	f.run(getKey(log, t))
 }
 
 func TestUpdateDeployment(t *testing.T) {
 	f := newFixture(t)
-	foo := newFoo("test", int32Ptr(1))
-	d := newDeployment(foo)
+	log := newLog("test", int32Ptr(1))
+	d := newDeployment(log)
 
 	// Update replicas
-	foo.Spec.Replicas = int32Ptr(2)
-	expDeployment := newDeployment(foo)
+	log.Spec.Replicas = int32Ptr(2)
+	expDeployment := newDeployment(log)
 
-	f.fooLister = append(f.fooLister, foo)
-	f.objects = append(f.objects, foo)
+	f.logLister = append(f.logLister, log)
+	f.objects = append(f.objects, log)
 	f.deploymentLister = append(f.deploymentLister, d)
 	f.kubeobjects = append(f.kubeobjects, d)
 
-	f.expectUpdateFooStatusAction(foo)
+	f.expectUpdateLogStatusAction(log)
 	f.expectUpdateDeploymentAction(expDeployment)
-	f.run(getKey(foo, t))
+	f.run(getKey(log, t))
 }
 
 func TestNotControlledByUs(t *testing.T) {
 	f := newFixture(t)
-	foo := newFoo("test", int32Ptr(1))
-	d := newDeployment(foo)
+	log := newLog("test", int32Ptr(1))
+	d := newDeployment(log)
 
 	d.ObjectMeta.OwnerReferences = []metav1.OwnerReference{}
 
-	f.fooLister = append(f.fooLister, foo)
-	f.objects = append(f.objects, foo)
+	f.logLister = append(f.logLister, log)
+	f.objects = append(f.objects, log)
 	f.deploymentLister = append(f.deploymentLister, d)
 	f.kubeobjects = append(f.kubeobjects, d)
 
-	f.runExpectError(getKey(foo, t))
+	f.runExpectError(getKey(log, t))
 }
 
 func int32Ptr(i int32) *int32 { return &i }

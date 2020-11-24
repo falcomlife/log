@@ -24,9 +24,9 @@ import (
 	"k8s.io/client-go/discovery"
 	fakediscovery "k8s.io/client-go/discovery/fake"
 	"k8s.io/client-go/testing"
-	clientset "k8s.io/sample-controller/pkg/generated/clientset/versioned"
-	samplecontrollerv1alpha1 "k8s.io/sample-controller/pkg/generated/clientset/versioned/typed/samplecontroller/v1alpha1"
-	fakesamplecontrollerv1alpha1 "k8s.io/sample-controller/pkg/generated/clientset/versioned/typed/samplecontroller/v1alpha1/fake"
+	clientset "k8s.io/log-controller/pkg/generated/clientset/versioned"
+	logcontrollerv1alpha1 "k8s.io/log-controller/pkg/generated/clientset/versioned/typed/logcontroller/v1alpha1"
+	fakelogcontrollerv1alpha1 "k8s.io/log-controller/pkg/generated/clientset/versioned/typed/logcontroller/v1alpha1/fake"
 )
 
 // NewSimpleClientset returns a clientset that will respond with the provided objects.
@@ -76,7 +76,7 @@ func (c *Clientset) Tracker() testing.ObjectTracker {
 
 var _ clientset.Interface = &Clientset{}
 
-// SamplecontrollerV1alpha1 retrieves the SamplecontrollerV1alpha1Client
-func (c *Clientset) SamplecontrollerV1alpha1() samplecontrollerv1alpha1.SamplecontrollerV1alpha1Interface {
-	return &fakesamplecontrollerv1alpha1.FakeSamplecontrollerV1alpha1{Fake: &c.Fake}
+// LogcontrollerV1alpha1 retrieves the LogcontrollerV1alpha1Client
+func (c *Clientset) LogcontrollerV1alpha1() logcontrollerv1alpha1.LogcontrollerV1alpha1Interface {
+	return &fakelogcontrollerv1alpha1.FakeLogcontrollerV1alpha1{Fake: &c.Fake}
 }
