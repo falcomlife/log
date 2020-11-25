@@ -1,13 +1,17 @@
 package log
 
 import (
-	"bytes"
 	"github.com/json-iterator/go"
-	"io/ioutil"
-	"net/http"
+	"k8s.io/log-controller/common"
 )
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
+
+const (
+	WechatDomain    = "qyapi.weixin.qq.com"
+	AccessTokenPath = "/cgi-bin/gettoken?corpid="
+	SendMessagePath = "/cgi-bin/message/send?access_token="
+)
 
 type JSON struct {
 	Access_token string `json:"access_token"`
@@ -26,34 +30,29 @@ type MESSAGES struct {
 	Safe int `json:"safe"`
 }
 
-func Get_AccessToken(corpid, corpsecret string) string {
-	gettoken_url := "https://qyapi.weixin.qq.com/cgi-bin/gettoken?corpid=" + corpid + "&corpsecret=" + corpsecret
-	//print(gettoken_url)
-	client := &http.Client{}
-	req, _ := client.Get(gettoken_url)
-	defer req.Body.Close()
-	body, _ := ioutil.ReadAll(req.Body)
-	//fmt.Printf("\n%q",string(body))
-	var json_str JSON
-	json.Unmarshal([]byte(body), &json_str)
-	//fmt.Printf("\n%q",json_str.Access_token)
+func GetAccessToken(corpid, corpsecret string) string {
+	client := common.HttpClient{
+		Protocol: "https",
+		Host:     WechatDomain,
+	}
+	var json_str JSON = JSON{}
+	err := client.Get(AccessTokenPath+corpid+"&corpsecret="+corpsecret, &json_str)
+	if err != nil {
+		return err.Error()
+	}
 	return json_str.Access_token
 }
 
-func Send_Message(access_token, msg string) (string, []byte) {
-	send_url := "https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token=" + access_token
-	//print(send_url)
-	client := &http.Client{}
-	req, _ := http.NewRequest("POST", send_url, bytes.NewBuffer([]byte(msg)))
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("charset", "UTF-8")
-	resp, err := client.Do(req)
-	if err != nil {
-		panic(err)
+func SendMessage(access_token, msg string) []byte {
+	client := common.HttpClient{
+		Protocol: "https",
+		Host:     WechatDomain,
 	}
-	defer resp.Body.Close()
-	body, _ := ioutil.ReadAll(resp.Body)
-	return resp.Status, body
+	b, err := client.Post(SendMessagePath+access_token, msg)
+	if err != nil {
+		return nil
+	}
+	return b
 }
 
 func Messages(touser string, toparty string, totag int, agentid int, content string) string {

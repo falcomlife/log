@@ -18,7 +18,6 @@ package main
 
 import (
 	"fmt"
-	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -31,7 +30,6 @@ import (
 	"k8s.io/klog/v2"
 	"k8s.io/log-controller/log"
 
-	logv1alpha1 "k8s.io/log-controller/pkg/apis/logcontroller/v1alpha1"
 	clientset "k8s.io/log-controller/pkg/generated/clientset/versioned"
 	logscheme "k8s.io/log-controller/pkg/generated/clientset/versioned/scheme"
 	informers "k8s.io/log-controller/pkg/generated/informers/externalversions/logcontroller/v1alpha1"
@@ -55,6 +53,8 @@ const (
 	MessageResourceNoName = "spce.prometheus.name not define"
 	// field spce.prometheus.host not define
 	MessageResourceNoHost = "spce.prometheus.host not define"
+	// field spce.prometheus.protocol not define
+	MessageResourceNoProtocol = "spce.prometheus.protocol not define"
 	// field spce.prometheus.port not define
 	MessageResourceNoPort = "spce.prometheus.port not define"
 )
@@ -171,43 +171,5 @@ func (c *Controller) handleObject(obj interface{}) {
 
 		c.enqueueLog(log)
 		return
-	}
-}
-
-// newDeployment creates a new Deployment for a Log resource. It also sets
-// the appropriate OwnerReferences on the resource so handleObject can discover
-// the Log resource that 'owns' it.
-func newDeployment(log *logv1alpha1.Log) *appsv1.Deployment {
-	labels := map[string]string{
-		"app":        "nginx",
-		"controller": log.Name,
-	}
-	return &appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      log.Spec.DeploymentName,
-			Namespace: log.Namespace,
-			OwnerReferences: []metav1.OwnerReference{
-				*metav1.NewControllerRef(log, logv1alpha1.SchemeGroupVersion.WithKind("Log")),
-			},
-		},
-		Spec: appsv1.DeploymentSpec{
-			Replicas: log.Spec.Replicas,
-			Selector: &metav1.LabelSelector{
-				MatchLabels: labels,
-			},
-			Template: corev1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: labels,
-				},
-				Spec: corev1.PodSpec{
-					Containers: []corev1.Container{
-						{
-							Name:  "nginx",
-							Image: "nginx:latest",
-						},
-					},
-				},
-			},
-		},
 	}
 }

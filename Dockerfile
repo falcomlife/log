@@ -12,4 +12,6 @@ WORKDIR /opt
 COPY log-controller /opt
 COPY message.template /opt
 
+RUN ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
+
 ENV LOG.ENV PROD

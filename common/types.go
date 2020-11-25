@@ -1,7 +1,8 @@
 package common
 
 type HttpClient struct {
-	Name string
-	Host string
-	Port string
+	Name     string
+	Protocol string
+	Host     string
+	Port     string
 }

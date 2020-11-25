@@ -33,15 +33,14 @@ type Log struct {
 
 // LogSpec is the spec for a Log resource
 type LogSpec struct {
-	DeploymentName string     `json:"deploymentName"`
-	Replicas       *int32     `json:"replicas"`
-	Prometheus     Prometheus `json:"prometheus"`
+	Prometheus Prometheus `json:"prometheus"`
 }
 
 type Prometheus struct {
-	Name string `json:"name"`
-	Host string `json:"host"`
-	Port string `json:"port"`
+	Name     string `json:"name"`
+	Protocol string `json:"protocol"`
+	Host     string `json:"host"`
+	Port     string `json:"port"`
 	// unit second
 	Period int64 `json:"period"`
 }

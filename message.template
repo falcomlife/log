@@ -1,4 +1,9 @@
-{{range $key, $value := . }}
+{{- range $key, $value := . }}
 Hostname:{{$key}}
- CpuMax: {{.CpuSum}}% {{.CpuSumTime.Format "Jan 02, 2006"}}
-{{end}}
+ CpuMax: {{.CpuSumMax}}% {{.CpuSumMaxTime.Format "Jan _2 15:04:05"}}
+ CpuMin: {{.CpuSumMin}}% {{.CpuSumMinTime.Format "Jan _2 15:04:05"}}
+ CpuAvg: {{.CpuSumAvg}}%
+ MemMax: {{.MemMax}}Gi {{.MemMaxTime.Format "Jan _2 15:04:05"}}
+ MemMin: {{.MemMin}}Gi {{.MemMinTime.Format "Jan _2 15:04:05"}}
+ MemAvg: {{.MemAvg}}
+{{- end}}

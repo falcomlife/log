@@ -3,13 +3,13 @@ kind: Log
 metadata:
   name: log
 spec:
-  deploymentName: log
-  replicas: 1
   prometheus:
     name: log
-    host: prometheus-k8s.monitoring
-    port: "9090"
-    period: 10
-#    host: 172.16.77.154
-#    port: "39090"
+#    protocol: http
+#    host: prometheus-k8s.monitoring
+#    port: "9090"
 #    period: 10
+    protocol: http
+    host: 172.16.77.154
+    port: "39090"
+    period: 10

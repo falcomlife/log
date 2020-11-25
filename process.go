@@ -12,8 +12,8 @@ import (
 	"k8s.io/klog/v2"
 	"k8s.io/log-controller/log"
 	logv1alpha1 "k8s.io/log-controller/pkg/apis/logcontroller/v1alpha1"
+	"math"
 	"strconv"
-	"strings"
 	"text/template"
 	"time"
 )
@@ -37,7 +37,7 @@ func (c *Controller) Run(threadiness int, stopCh <-chan struct{}) error {
 
 	klog.Info("Starting workers")
 	go c.runPrometheusWorder()
-	go c.runCronTask(&c.prometheusMetricQueue)
+	go c.runCronTask(c.prometheusMetricQueue)
 	// Launch two workers to process Log resources
 	for i := 0; i < threadiness; i++ {
 		go wait.Until(c.runWorker, time.Second, stopCh)
@@ -53,23 +53,28 @@ func (c *Controller) Run(threadiness int, stopCh <-chan struct{}) error {
 // run a work for get prometheus
 func (c *Controller) runPrometheusWorder() {
 	// default period value is 30
-	var period int64 = log.Period
+	period := c.prometheusClient.Period
+	if period == 0 {
+		period = log.Period
+	}
 	for {
 		select {
 		case <-time.Tick(time.Duration(period) * time.Second):
 			name := c.prometheusClient.Name
 			host := c.prometheusClient.Host
 			port := c.prometheusClient.Port
-			periodtmp := c.prometheusClient.Period
-			if periodtmp != 0 {
-				period = periodtmp
-			}
 			if name != "" && host != "" && port != "" {
-				nodes, err := c.prometheusClient.Get(log.NodeCpuUsedPercentage)
-				c.batchForCpu(nodes)
+				nodes1, err := c.prometheusClient.Get(log.NodeCpuUsedPercentage)
 				if err != nil {
 					continue
 				}
+				c.batchForCpu(nodes1)
+				nodes2, err := c.prometheusClient.Get(log.NodeMemoryUsed)
+				if err != nil {
+					continue
+				}
+				c.batchForMem(nodes2)
+				c.prometheusClient.SamplingTimes++
 			} else {
 				continue
 			}
@@ -86,8 +91,10 @@ func (c *Controller) batchForCpu(nodes map[string]log.Node) {
 		} else {
 			// there is not node in map
 			nodeOld = log.Node{
-				Name: node.Name,
-				Cpu:  make(map[string]log.Cpu),
+				Name:      node.Name,
+				Cpu:       make(map[string]log.Cpu),
+				CpuSumMin: math.MaxFloat64,
+				MemMin:    math.MaxFloat64,
 			}
 		}
 		cpuNewvValueSum := 0.0
@@ -100,23 +107,80 @@ func (c *Controller) batchForCpu(nodes map[string]log.Node) {
 				// there is not cpu in map
 				cpuOld = log.Cpu{}
 			}
-			if cpuNewValue.CpuMax > cpuOld.CpuMax {
-				cpuOld.CpuMax = cpuNewValue.CpuMax
-				cpuOld.CpuMaxTime = cpuNewValue.CpuMaxTime
-			}
+			cpuOld.Value = cpuNewValue.Value
+			cpuOld.Time = cpuNewValue.Time
 			nodeOld.Cpu[cpuNewKey] = cpuOld
-			cpuNewvValueSum += cpuNewValue.CpuMax
+			cpuNewvValueSum += cpuNewValue.Value
 		}
 		cpuSumNew := cpuNewvValueSum / float64(len(node.Cpu)) * 100
-		if nodeOld.CpuSum < cpuSumNew {
+		if nodeOld.CpuSumMax < cpuSumNew {
 			cpuValue, err := strconv.ParseFloat(fmt.Sprintf("%.2f", cpuSumNew), 64)
 			if err != nil {
 				klog.Warning(err)
 				continue
 			}
-			nodeOld.CpuSum = cpuValue
-			nodeOld.CpuSumTime = time.Now()
+			nodeOld.CpuSumMax = cpuValue
+			nodeOld.CpuSumMaxTime = time.Now()
 		}
+		if nodeOld.CpuSumMin > cpuSumNew {
+			cpuValue, err := strconv.ParseFloat(fmt.Sprintf("%.2f", cpuSumNew), 64)
+			if err != nil {
+				klog.Warning(err)
+				continue
+			}
+			nodeOld.CpuSumMin = cpuValue
+			nodeOld.CpuSumMinTime = time.Now()
+		}
+		cpuAvgtemp := (nodeOld.CpuSumAvg*float64(c.prometheusClient.SamplingTimes) + cpuSumNew) / float64(c.prometheusClient.SamplingTimes+1)
+		cpuAvg, err := strconv.ParseFloat(fmt.Sprintf("%.2f", cpuAvgtemp), 64)
+		if err != nil {
+			klog.Warning(err)
+		}
+		nodeOld.CpuSumAvg = cpuAvg
+		c.prometheusMetricQueue[node.Name] = nodeOld
+	}
+}
+
+func (c *Controller) batchForMem(nodes map[string]log.Node) {
+	for _, node := range nodes {
+		var nodeOld log.Node
+		if _, ok := c.prometheusMetricQueue[node.Name]; ok {
+			// there is node in map
+			nodeOld = c.prometheusMetricQueue[node.Name]
+		} else {
+			// there is not node in map
+			nodeOld = log.Node{
+				Name:      node.Name,
+				Cpu:       make(map[string]log.Cpu),
+				CpuSumMin: math.MaxFloat64,
+				MemMin:    math.MaxFloat64,
+			}
+		}
+		memUsedNew := node.MemMax / math.Pow(2, 30)
+		if nodeOld.MemMax < memUsedNew {
+			memValue, err := strconv.ParseFloat(fmt.Sprintf("%.2f", memUsedNew), 64)
+			if err != nil {
+				klog.Warning(err)
+				continue
+			}
+			nodeOld.MemMax = memValue
+			nodeOld.MemMaxTime = time.Now()
+		}
+		if nodeOld.MemMin > memUsedNew {
+			memValue, err := strconv.ParseFloat(fmt.Sprintf("%.2f", memUsedNew), 64)
+			if err != nil {
+				klog.Warning(err)
+				continue
+			}
+			nodeOld.MemMin = memValue
+			nodeOld.MemMinTime = time.Now()
+		}
+		memAvgtemp := (nodeOld.MemAvg*float64(c.prometheusClient.SamplingTimes) + memUsedNew) / float64(c.prometheusClient.SamplingTimes+1)
+		memAvg, err := strconv.ParseFloat(fmt.Sprintf("%.2f", memAvgtemp), 64)
+		if err != nil {
+			klog.Warning(err)
+		}
+		nodeOld.MemAvg = memAvg
 		c.prometheusMetricQueue[node.Name] = nodeOld
 	}
 }
@@ -184,62 +248,62 @@ func (c *Controller) syncHandler(key string) error {
 	return nil
 }
 
-func (c *Controller) updateLogStatus(log *logv1alpha1.Log) error {
+func (c *Controller) updateLogStatus(l *logv1alpha1.Log) error {
 	// NEVER modify objects from the store. It's a read-only, local cache.
 	// You can use DeepCopy() to make a deep copy of original object and modify this copy
 	// Or create a copy manually for better performance
-	logCopy := log.DeepCopy()
+	logCopy := l.DeepCopy()
 	name := logCopy.Spec.Prometheus.Name
+	protocol := logCopy.Spec.Prometheus.Protocol
 	host := logCopy.Spec.Prometheus.Host
 	port := logCopy.Spec.Prometheus.Port
 	period := logCopy.Spec.Prometheus.Period
 	if period == 0 {
-		c.recorder.Event(log, corev1.EventTypeWarning, ErrResourceExists, MessageResourceNoPeriod)
-		return fmt.Errorf("field spce.prometheus.period not define")
+		// default period value is 30 second
+		period = log.Period
 	}
 	if name == "" {
-		c.recorder.Event(log, corev1.EventTypeWarning, ErrResourceExists, MessageResourceNoName)
+		c.recorder.Event(l, corev1.EventTypeWarning, ErrResourceExists, MessageResourceNoName)
 		return fmt.Errorf("field spce.prometheus.name not define")
 	}
 	if host == "" {
-		c.recorder.Event(log, corev1.EventTypeWarning, ErrResourceExists, MessageResourceNoHost)
+		c.recorder.Event(l, corev1.EventTypeWarning, ErrResourceExists, MessageResourceNoHost)
+		return fmt.Errorf("field spce.prometheus.host not define")
+	}
+	if protocol == "" {
+		c.recorder.Event(l, corev1.EventTypeWarning, ErrResourceExists, MessageResourceNoProtocol)
 		return fmt.Errorf("field spce.prometheus.host not define")
 	}
 	if port == "" {
-		c.recorder.Event(log, corev1.EventTypeWarning, ErrResourceExists, MessageResourceNoPort)
+		c.recorder.Event(l, corev1.EventTypeWarning, ErrResourceExists, MessageResourceNoPort)
 		return fmt.Errorf("field spce.prometheus.port not define")
 	}
 	c.prometheusClient.Name = name
 	c.prometheusClient.Host = host
+	c.prometheusClient.Protocol = protocol
 	c.prometheusClient.Port = port
 	c.prometheusClient.Period = period
 	return nil
 }
 
-func (c *Controller) runCronTask(nodes *map[string]log.Node) {
+func (c *Controller) runCronTask(nodes map[string]log.Node) {
 	crontab := cron.New(cron.WithSeconds())
 	task := func() {
-		totag := log.TagId
-		agentid := log.AgentId   //企业号中的应用id。
-		corpid := log.CorpId     //企业号的标识
-		corpsecret := log.Secret ///企业号中的应用的Secret
-		accessToken := log.Get_AccessToken(corpid, corpsecret)
-		tmpl, err := template.ParseFiles("./message.template")
+		accessToken := log.GetAccessToken(log.CorpId, log.Secret)
+		tmpl, err := template.ParseFiles(log.Template)
 		if err != nil {
-			fmt.Println("create template failed, err:", err)
+			klog.Warning("create template failed, err:")
 			return
 		}
-		// 利用给定数据渲染模板，并将结果写入w
 		buf := new(bytes.Buffer)
 		tmpl.Execute(buf, nodes)
+		c.prometheusClient.SamplingTimes = 0
 		content := buf.String()
-		// 序列化成json之后，\n会被转义，也就是变成了\\n，使用str替换，替换掉转义
-		msg := strings.Replace(log.Messages("", "", totag, agentid, content), "\\\\", "\\", -1)
-		//fmt.Println(strings.Replace(msg, "\\\\", "\\", -1))
-		log.Send_Message(accessToken, msg)
+		msg := log.Messages("", "", log.TagId, log.AgentId, content)
+		log.SendMessage(accessToken, msg)
 	}
-	crontab.AddFunc("0 0 18 * * ?", task)
-	//crontab.AddFunc("0 */1 * * * *", task)
+	//crontab.AddFunc("0 0 18 * * ?", task)
+	crontab.AddFunc("0 */1 * * * *", task)
 	crontab.Start()
 	defer crontab.Stop()
 	select {}

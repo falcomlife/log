@@ -9,15 +9,16 @@ import (
 )
 
 func (p *PrometheusClient) Get(path string) (map[string]Node, error) {
-	httpclient := common.HttpClient{Host: p.Host, Port: p.Port}
-	m, err := httpclient.Get(path)
+	httpclient := common.HttpClient{Protocol: p.Protocol, Host: p.Host, Port: p.Port}
+	m := make(map[string]interface{})
+	err := httpclient.Get(path, &m)
 	if err != nil {
 		return nil, err
 	}
-	return emetricMapToNode(m)
+	return emetricMapToNode(m, path)
 }
 
-func emetricMapToNode(m map[string]interface{}) (map[string]Node, error) {
+func emetricMapToNode(m map[string]interface{}, path string) (map[string]Node, error) {
 	rm := make(map[string]Node)
 	status, _ := m["status"].(string)
 	if status != "success" {
@@ -63,17 +64,26 @@ func emetricMapToNode(m map[string]interface{}) (map[string]Node, error) {
 			klog.Warning("value[1] not a string")
 			continue
 		}
-		cpuValueStr, err := strconv.ParseFloat(v, 64)
+		valueFloat, err := strconv.ParseFloat(v, 64)
 		if err != nil {
 			klog.Warning(err)
 			continue
 		}
-		cpu := Cpu{
-			CpuMax:     cpuValueStr,
-			CpuMaxTime: time.Now(),
+		if path == NodeCpuUsedPercentage {
+			cpu := Cpu{
+				Value: valueFloat,
+				Time:  time.Now(),
+			}
+			inst.Cpu[(metric["cpu"].(string))] = cpu
+			rm[inst.Name] = inst
+		} else if path == NodeMemoryUsed {
+			inst.MemMax = valueFloat
+			inst.MemMaxTime = time.Now()
+			inst.MemMin = valueFloat
+			inst.MemMinTime = time.Now()
+			inst.MemAvg = valueFloat
+			rm[inst.Name] = inst
 		}
-		inst.Cpu[(metric["cpu"].(string))] = cpu
-		rm[inst.Name] = inst
 	}
 	return rm, nil
 }
