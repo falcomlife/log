@@ -296,15 +296,43 @@ func (c *Controller) runCronTask(nodes map[string]log.Node) {
 			return
 		}
 		buf := new(bytes.Buffer)
+		batchNodes(nodes, c.nodes)
 		tmpl.Execute(buf, nodes)
 		c.prometheusClient.SamplingTimes = 0
 		content := buf.String()
 		msg := log.Messages("", "", log.TagId, log.AgentId, content)
-		log.SendMessage(accessToken, msg)
+		fmt.Println(accessToken,msg)
+		//log.SendMessage(accessToken, msg)
 	}
 	//crontab.AddFunc("0 0 18 * * ?", task)
-	crontab.AddFunc("0 */1 * * * *", task)
+	crontab.AddFunc("0 */5 * * * *", task)
 	crontab.Start()
 	defer crontab.Stop()
 	select {}
+}
+
+func batchNodes(nodes map[string]log.Node, corev1Nodes map[string]corev1.Node) {
+	for key, value := range nodes {
+		allocatable := corev1Nodes[key].Status.Allocatable
+		cpuAllocatable := allocatable.Cpu().Value()
+		memAllocatable := allocatable.Memory().Value()
+		value.Allocatable.Memory = float64(memAllocatable)
+		value.Allocatable.Cpu = float64(cpuAllocatable)
+		ft1 := fmt.Sprintf("%.2f",value.CpuSumMax - value.CpuSumMin)
+		cpuVolatility, err := strconv.ParseFloat(ft1, 64)
+		if err != nil {
+			klog.Warning(err)
+			continue
+		}
+		value.CpuVolatility = cpuVolatility
+		ft2 := fmt.Sprintf("%.4f", (value.MemMax-value.MemMin)/(value.Allocatable.Memory/math.Pow(2, 30)))
+		memVolatility, err := strconv.ParseFloat(ft2, 64)
+		if err != nil {
+			klog.Warning(err)
+			continue
+		}
+		value.MemVolatility = memVolatility*100
+		nodes[key] = value
+	}
+	fmt.Println(nodes)
 }

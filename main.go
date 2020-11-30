@@ -72,7 +72,8 @@ func main() {
 
 	controller := NewController(kubeClient,
 		exampleClient,
-		exampleInformerFactory.Logcontroller().V1alpha1().Logs())
+		exampleInformerFactory.Logcontroller().V1alpha1().Logs(),
+		kubeInformerFactory.Core().V1().Nodes())
 
 	// notice that there is no need to run Start methods in a separate goroutine. (i.e. go kubeInformerFactory.Start(stopCh)
 	// Start method is non-blocking and runs all registered informers in a dedicated goroutine.
@@ -88,19 +89,3 @@ func init() {
 	flag.StringVar(&kubeconfig, "kubeconfig", "test.kubeconfig", "Path to a kubeconfig. Only required if out-of-cluster.")
 	flag.StringVar(&masterURL, "master", "", "The address of the Kubernetes API server. Overrides any value in kubeconfig. Only required if out-of-cluster.")
 }
-
-//func main() {
-//
-//	i := 0
-//	c := cron.New(cron.WithSeconds())
-//	spec := "*/5 * * * * ?"
-//	c.AddFunc(spec, func() {
-//		i++
-//		fmt.Println("1234")
-//		log.Println("cron running:", i)
-//	})
-//	c.Start()
-//
-//	select {}
-//
-//}

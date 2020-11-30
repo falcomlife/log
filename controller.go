@@ -17,9 +17,7 @@ limitations under the License.
 package main
 
 import (
-	"fmt"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -30,6 +28,7 @@ import (
 	"k8s.io/klog/v2"
 	"k8s.io/log-controller/log"
 
+	coreinformers "k8s.io/client-go/informers/core/v1"
 	clientset "k8s.io/log-controller/pkg/generated/clientset/versioned"
 	logscheme "k8s.io/log-controller/pkg/generated/clientset/versioned/scheme"
 	informers "k8s.io/log-controller/pkg/generated/informers/externalversions/logcontroller/v1alpha1"
@@ -81,13 +80,16 @@ type Controller struct {
 	// recorder is an event recorder for recording Event resources to the
 	// Kubernetes API.
 	recorder record.EventRecorder
+
+	nodes map[string]corev1.Node
 }
 
 // NewController returns a new log controller
 func NewController(
 	kubeclientset kubernetes.Interface,
 	logclientset clientset.Interface,
-	logInformer informers.LogInformer) *Controller {
+	logInformer informers.LogInformer,
+	nodeInformer coreinformers.NodeInformer) *Controller {
 
 	// Create event broadcaster
 	// Add log-controller types to the default Kubernetes Scheme so Events can be
@@ -108,6 +110,7 @@ func NewController(
 		prometheusMetricQueue: make(map[string]log.Node),
 		workqueue:             workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "Logs"),
 		recorder:              recorder,
+		nodes:                 map[string]corev1.Node{},
 	}
 
 	klog.Info("Setting up event handlers")
@@ -118,7 +121,19 @@ func NewController(
 			controller.enqueueLog(new)
 		},
 	})
+
+	nodeInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc: controller.nodeHandler,
+		UpdateFunc: func(old interface{},new interface{}){
+			controller.nodeHandler(new)
+		},
+	})
 	return controller
+}
+
+func (c *Controller) nodeHandler(obj interface{}) {
+	node := obj.(*corev1.Node)
+	c.nodes[node.Name] = *node
 }
 
 // enqueueLog takes a Log resource and converts it into a namespace/name
@@ -132,44 +147,4 @@ func (c *Controller) enqueueLog(obj interface{}) {
 		return
 	}
 	c.workqueue.Add(key)
-}
-
-// handleObject will take any resource implementing metav1.Object and attempt
-// to find the Log resource that 'owns' it. It does this by looking at the
-// objects metadata.ownerReferences field for an appropriate OwnerReference.
-// It then enqueues that Log resource to be processed. If the object does not
-// have an appropriate OwnerReference, it will simply be skipped.
-func (c *Controller) handleObject(obj interface{}) {
-	var object metav1.Object
-	var ok bool
-	if object, ok = obj.(metav1.Object); !ok {
-		tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
-		if !ok {
-			utilruntime.HandleError(fmt.Errorf("error decoding object, invalid type"))
-			return
-		}
-		object, ok = tombstone.Obj.(metav1.Object)
-		if !ok {
-			utilruntime.HandleError(fmt.Errorf("error decoding object tombstone, invalid type"))
-			return
-		}
-		klog.V(4).Infof("Recovered deleted object '%s' from tombstone", object.GetName())
-	}
-	klog.V(4).Infof("Processing object: %s", object.GetName())
-	if ownerRef := metav1.GetControllerOf(object); ownerRef != nil {
-		// If this object is not owned by a Log, we should not do anything more
-		// with it.
-		if ownerRef.Kind != "Log" {
-			return
-		}
-
-		log, err := c.logsLister.Logs(object.GetNamespace()).Get(ownerRef.Name)
-		if err != nil {
-			klog.V(4).Infof("ignoring orphaned object '%s' of log '%s'", object.GetSelfLink(), ownerRef.Name)
-			return
-		}
-
-		c.enqueueLog(log)
-		return
-	}
 }

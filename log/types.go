@@ -28,17 +28,26 @@ type Node struct {
 	CpuSumMin     float64
 	CpuSumMinTime time.Time
 	CpuSumAvg     float64
+	CpuVolatility float64
 	MemMax        float64
 	MemMaxTime    time.Time
 	MemMin        float64
 	MemMinTime    time.Time
 	MemAvg        float64
+	MemVolatility float64
 	Amplitude     float64
+	Allocatable   Allocatable
+
 }
 
 type Cpu struct {
 	Value float64
 	Time  time.Time
+}
+
+type Allocatable struct {
+	Cpu    float64
+	Memory float64
 }
 
 type Pod struct {

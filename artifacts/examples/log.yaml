@@ -5,11 +5,11 @@ metadata:
 spec:
   prometheus:
     name: log
-#    protocol: http
-#    host: prometheus-k8s.monitoring
-#    port: "9090"
-#    period: 10
     protocol: http
-    host: 172.16.77.154
-    port: "39090"
+    host: prometheus-k8s.monitoring
+    port: "9090"
     period: 10
+#    protocol: http
+#    host: 172.16.77.154
+#    port: "39090"
+#    period: 10
