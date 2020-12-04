@@ -1,24 +1,24 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: log
+  name: klog
   namespace: common
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: log
+      app: klog
   template:
     metadata:
       labels:
-        app: log
+        app: klog
     spec:
       containers:
         - command:
             - /opt/log-controller
           image: registry.cn-hangzhou.aliyuncs.com/cotte-internal/log:0.0.1
           imagePullPolicy: Always
-          name: log
+          name: klog
           resources:
             limits:
               cpu: 500m

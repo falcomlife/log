@@ -1,7 +1,7 @@
 apiVersion: logcontroller.k8s.io/v1alpha1
 kind: Log
 metadata:
-  name: log
+  name: klog
 spec:
   prometheus:
     name: log
