@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package main
+package controller
 
 import (
 	corev1 "k8s.io/api/core/v1"
@@ -56,6 +56,9 @@ const (
 	MessageResourceNoProtocol = "spce.prometheus.protocol not define"
 	// field spce.prometheus.port not define
 	MessageResourceNoPort = "spce.prometheus.port not define"
+	// web url
+	//WebUrl = "https://log.ciiplat.com/web/index.html"
+	WebUrl = "http://localhost:8080/web/index.html"
 )
 
 // Controller is the controller implementation for Log resources
@@ -67,7 +70,7 @@ type Controller struct {
 	// prometheus datasource
 	prometheusClient log.PrometheusClient
 	// queue for the metrics, those come from prometheus
-	prometheusMetricQueue map[string]log.Node
+	PrometheusMetricQueue map[string]log.Node
 
 	logsLister listers.LogLister
 	logsSynced cache.InformerSynced
@@ -107,7 +110,7 @@ func NewController(
 		prometheusClient:      log.PrometheusClient{},
 		logsLister:            logInformer.Lister(),
 		logsSynced:            logInformer.Informer().HasSynced,
-		prometheusMetricQueue: make(map[string]log.Node),
+		PrometheusMetricQueue: make(map[string]log.Node),
 		workqueue:             workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "Logs"),
 		recorder:              recorder,
 		nodes:                 map[string]corev1.Node{},
@@ -124,7 +127,7 @@ func NewController(
 
 	nodeInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: controller.nodeHandler,
-		UpdateFunc: func(old interface{},new interface{}){
+		UpdateFunc: func(old interface{}, new interface{}) {
 			controller.nodeHandler(new)
 		},
 	})

@@ -5,6 +5,7 @@ module k8s.io/log-controller
 go 1.14
 
 require (
+	github.com/astaxie/beego v1.12.3
 	github.com/json-iterator/go v1.1.10
 	github.com/robfig/cron/v3 v3.0.1
 	k8s.io/api v0.19.4

@@ -29,15 +29,18 @@ type Node struct {
 	CpuSumMinTime time.Time
 	CpuSumAvg     float64
 	CpuVolatility float64
+	CpuMaxRatio   float64
+	CpuLaster     float64
 	MemMax        float64
 	MemMaxTime    time.Time
 	MemMin        float64
 	MemMinTime    time.Time
 	MemAvg        float64
 	MemVolatility float64
+	MemMaxRatio   float64
+	MemLaster     float64
 	Amplitude     float64
 	Allocatable   Allocatable
-
 }
 
 type Cpu struct {

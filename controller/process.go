@@ -1,7 +1,6 @@
-package main
+package controller
 
 import (
-	"bytes"
 	"fmt"
 	cron "github.com/robfig/cron/v3"
 	corev1 "k8s.io/api/core/v1"
@@ -14,7 +13,6 @@ import (
 	logv1alpha1 "k8s.io/log-controller/pkg/apis/logcontroller/v1alpha1"
 	"math"
 	"strconv"
-	"text/template"
 	"time"
 )
 
@@ -37,7 +35,7 @@ func (c *Controller) Run(threadiness int, stopCh <-chan struct{}) error {
 
 	klog.Info("Starting workers")
 	go c.runPrometheusWorder()
-	go c.runCronTask(c.prometheusMetricQueue)
+	go c.runCronTask(c.PrometheusMetricQueue)
 	// Launch two workers to process Log resources
 	for i := 0; i < threadiness; i++ {
 		go wait.Until(c.runWorker, time.Second, stopCh)
@@ -85,9 +83,9 @@ func (c *Controller) runPrometheusWorder() {
 func (c *Controller) batchForCpu(nodes map[string]log.Node) {
 	for _, node := range nodes {
 		var nodeOld log.Node
-		if _, ok := c.prometheusMetricQueue[node.Name]; ok {
+		if _, ok := c.PrometheusMetricQueue[node.Name]; ok {
 			// there is node in map
-			nodeOld = c.prometheusMetricQueue[node.Name]
+			nodeOld = c.PrometheusMetricQueue[node.Name]
 		} else {
 			// there is not node in map
 			nodeOld = log.Node{
@@ -113,8 +111,8 @@ func (c *Controller) batchForCpu(nodes map[string]log.Node) {
 			cpuNewvValueSum += cpuNewValue.Value
 		}
 		cpuSumNew := cpuNewvValueSum / float64(len(node.Cpu)) * 100
+		cpuValue, err := strconv.ParseFloat(fmt.Sprintf("%.2f", cpuSumNew), 64)
 		if nodeOld.CpuSumMax < cpuSumNew {
-			cpuValue, err := strconv.ParseFloat(fmt.Sprintf("%.2f", cpuSumNew), 64)
 			if err != nil {
 				klog.Warning(err)
 				continue
@@ -123,7 +121,6 @@ func (c *Controller) batchForCpu(nodes map[string]log.Node) {
 			nodeOld.CpuSumMaxTime = time.Now()
 		}
 		if nodeOld.CpuSumMin > cpuSumNew {
-			cpuValue, err := strconv.ParseFloat(fmt.Sprintf("%.2f", cpuSumNew), 64)
 			if err != nil {
 				klog.Warning(err)
 				continue
@@ -131,22 +128,28 @@ func (c *Controller) batchForCpu(nodes map[string]log.Node) {
 			nodeOld.CpuSumMin = cpuValue
 			nodeOld.CpuSumMinTime = time.Now()
 		}
+		if ratio := cpuValue - nodeOld.CpuLaster; ratio > nodeOld.CpuMaxRatio && nodeOld.CpuLaster != 0 {
+			r, _ := strconv.ParseFloat(fmt.Sprintf("%.2f", ratio), 64)
+			nodeOld.CpuMaxRatio = r
+		}
+		nodeOld.CpuLaster = cpuValue
+
 		cpuAvgtemp := (nodeOld.CpuSumAvg*float64(c.prometheusClient.SamplingTimes) + cpuSumNew) / float64(c.prometheusClient.SamplingTimes+1)
 		cpuAvg, err := strconv.ParseFloat(fmt.Sprintf("%.2f", cpuAvgtemp), 64)
 		if err != nil {
 			klog.Warning(err)
 		}
 		nodeOld.CpuSumAvg = cpuAvg
-		c.prometheusMetricQueue[node.Name] = nodeOld
+		c.PrometheusMetricQueue[node.Name] = nodeOld
 	}
 }
 
 func (c *Controller) batchForMem(nodes map[string]log.Node) {
 	for _, node := range nodes {
 		var nodeOld log.Node
-		if _, ok := c.prometheusMetricQueue[node.Name]; ok {
+		if _, ok := c.PrometheusMetricQueue[node.Name]; ok {
 			// there is node in map
-			nodeOld = c.prometheusMetricQueue[node.Name]
+			nodeOld = c.PrometheusMetricQueue[node.Name]
 		} else {
 			// there is not node in map
 			nodeOld = log.Node{
@@ -157,8 +160,8 @@ func (c *Controller) batchForMem(nodes map[string]log.Node) {
 			}
 		}
 		memUsedNew := node.MemMax / math.Pow(2, 30)
+		memValue, err := strconv.ParseFloat(fmt.Sprintf("%.2f", memUsedNew), 64)
 		if nodeOld.MemMax < memUsedNew {
-			memValue, err := strconv.ParseFloat(fmt.Sprintf("%.2f", memUsedNew), 64)
 			if err != nil {
 				klog.Warning(err)
 				continue
@@ -167,7 +170,6 @@ func (c *Controller) batchForMem(nodes map[string]log.Node) {
 			nodeOld.MemMaxTime = time.Now()
 		}
 		if nodeOld.MemMin > memUsedNew {
-			memValue, err := strconv.ParseFloat(fmt.Sprintf("%.2f", memUsedNew), 64)
 			if err != nil {
 				klog.Warning(err)
 				continue
@@ -175,13 +177,24 @@ func (c *Controller) batchForMem(nodes map[string]log.Node) {
 			nodeOld.MemMin = memValue
 			nodeOld.MemMinTime = time.Now()
 		}
+		if ratio := memValue - nodeOld.MemLaster; ratio > nodeOld.MemMaxRatio && nodeOld.MemLaster != 0 {
+			allocatable := c.nodes[nodeOld.Name].Status.Allocatable
+			ft2 := fmt.Sprintf("%.2f", 100*ratio/(float64(allocatable.Memory().Value())/math.Pow(2, 30)))
+			memratio, _ := strconv.ParseFloat(ft2, 64)
+			memratioPre := memratio
+			if memratioPre > nodeOld.MemMax {
+				nodeOld.MemMaxRatio = memratioPre
+			}
+		}
+		nodeOld.MemLaster = memValue
+
 		memAvgtemp := (nodeOld.MemAvg*float64(c.prometheusClient.SamplingTimes) + memUsedNew) / float64(c.prometheusClient.SamplingTimes+1)
 		memAvg, err := strconv.ParseFloat(fmt.Sprintf("%.2f", memAvgtemp), 64)
 		if err != nil {
 			klog.Warning(err)
 		}
 		nodeOld.MemAvg = memAvg
-		c.prometheusMetricQueue[node.Name] = nodeOld
+		c.PrometheusMetricQueue[node.Name] = nodeOld
 	}
 }
 
@@ -289,23 +302,16 @@ func (c *Controller) updateLogStatus(l *logv1alpha1.Log) error {
 func (c *Controller) runCronTask(nodes map[string]log.Node) {
 	crontab := cron.New(cron.WithSeconds())
 	task := func() {
+		fmt.Println(nodes["172.16.77.154"].CpuSumMax, "-", nodes["172.16.77.154"].CpuSumMin, "-", nodes["172.16.77.154"].MemMin, "-", nodes["172.16.77.154"].MemMax)
 		accessToken := log.GetAccessToken(log.CorpId, log.Secret)
-		tmpl, err := template.ParseFiles(log.Template)
-		if err != nil {
-			klog.Warning("create template failed, err:")
-			return
-		}
-		buf := new(bytes.Buffer)
 		batchNodes(nodes, c.nodes)
-		tmpl.Execute(buf, nodes)
 		c.prometheusClient.SamplingTimes = 0
-		content := buf.String()
-		msg := log.Messages("", "", log.TagId, log.AgentId, content)
-		fmt.Println(accessToken,msg)
+		msg := log.Messages("", "", log.TagId, log.AgentId, "今日日报已生成，请访问"+WebUrl+"查看")
+		fmt.Println(accessToken, msg)
 		//log.SendMessage(accessToken, msg)
 	}
 	//crontab.AddFunc("0 0 18 * * ?", task)
-	crontab.AddFunc("0 */5 * * * *", task)
+	crontab.AddFunc("0 */1 * * * *", task)
 	crontab.Start()
 	defer crontab.Stop()
 	select {}
@@ -318,21 +324,20 @@ func batchNodes(nodes map[string]log.Node, corev1Nodes map[string]corev1.Node) {
 		memAllocatable := allocatable.Memory().Value()
 		value.Allocatable.Memory = float64(memAllocatable)
 		value.Allocatable.Cpu = float64(cpuAllocatable)
-		ft1 := fmt.Sprintf("%.2f",value.CpuSumMax - value.CpuSumMin)
+		ft1 := fmt.Sprintf("%.2f", value.CpuSumMax-value.CpuSumMin)
 		cpuVolatility, err := strconv.ParseFloat(ft1, 64)
 		if err != nil {
 			klog.Warning(err)
 			continue
 		}
 		value.CpuVolatility = cpuVolatility
-		ft2 := fmt.Sprintf("%.4f", (value.MemMax-value.MemMin)/(value.Allocatable.Memory/math.Pow(2, 30)))
+		ft2 := fmt.Sprintf("%.2f", 100*(value.MemMax-value.MemMin)/(value.Allocatable.Memory/math.Pow(2, 30)))
 		memVolatility, err := strconv.ParseFloat(ft2, 64)
 		if err != nil {
 			klog.Warning(err)
 			continue
 		}
-		value.MemVolatility = memVolatility*100
+		value.MemVolatility = memVolatility
 		nodes[key] = value
 	}
-	fmt.Println(nodes)
 }

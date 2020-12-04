@@ -17,29 +17,77 @@ limitations under the License.
 package main
 
 import (
+	"encoding/json"
 	"flag"
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
-	"os"
-	"time"
-
+	"github.com/astaxie/beego"
+	"github.com/astaxie/beego/plugins/cors"
 	kubeinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/klog/v2"
-	// Uncomment the following line to load the gcp plugin (only required to authenticate against GKE clusters).
-	// _ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
-
+	controller2 "k8s.io/log-controller/controller"
+	"k8s.io/log-controller/log"
 	clientset "k8s.io/log-controller/pkg/generated/clientset/versioned"
 	informers "k8s.io/log-controller/pkg/generated/informers/externalversions"
 	"k8s.io/log-controller/pkg/signals"
+	"os"
+	"sort"
+	"time"
+	// Uncomment the following line to load the gcp plugin (only required to authenticate against GKE clusters).
+	// _ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 )
 
 var (
 	masterURL  string
 	kubeconfig string
+	controller *controller2.Controller
 )
 
+type NodeController struct {
+	beego.Controller
+}
+
+func (this *NodeController) Get() {
+	var result string
+	var list = make([]interface{}, 0)
+	for _, v := range controller.PrometheusMetricQueue {
+		list = append(list, v)
+	}
+	sort.SliceStable(list, func(i, j int) bool {
+		n1, _ := list[i].(log.Node)
+		n2, _ := list[j].(log.Node)
+		return n1.Name < n2.Name
+	})
+	var resList = make([]interface{}, 0)
+	for _, li := range list {
+		resList = append(resList, li)
+		resList = append(resList, li)
+	}
+	b, err := json.Marshal(resList)
+	if err != nil {
+		result = err.Error()
+	} else {
+		result = string(b)
+	}
+	this.Ctx.WriteString(result)
+}
+
 func main() {
+	go runCrd()
+	beego.SetStaticPath("/", "web")
+	beego.Router("/nodes", &NodeController{})
+	beego.InsertFilter("*", beego.BeforeRouter, cors.Allow(&cors.Options{
+		AllowAllOrigins:  true,
+		AllowMethods:     []string{"*"},
+		AllowHeaders:     []string{"*"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+	}))
+	beego.Run()
+}
+
+func runCrd() {
 	klog.InitFlags(nil)
 	flag.Parse()
 
@@ -70,7 +118,7 @@ func main() {
 	kubeInformerFactory := kubeinformers.NewSharedInformerFactory(kubeClient, time.Second*10)
 	exampleInformerFactory := informers.NewSharedInformerFactory(exampleClient, time.Second*10)
 
-	controller := NewController(kubeClient,
+	controller = controller2.NewController(kubeClient,
 		exampleClient,
 		exampleInformerFactory.Logcontroller().V1alpha1().Logs(),
 		kubeInformerFactory.Core().V1().Nodes())

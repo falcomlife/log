@@ -1,11 +1,13 @@
 {{- range $key, $value := . }}
--- Hostname:{{$key}} --
+--- Hostname:{{$key}} ---
  CpuMax: {{.CpuSumMax}}% {{.CpuSumMaxTime.Format "Jan _2 15:04:05"}}
  CpuMin: {{.CpuSumMin}}% {{.CpuSumMinTime.Format "Jan _2 15:04:05"}}
  CpuAvg: {{.CpuSumAvg}}%
  CpuVolatility: {{.CpuVolatility}}%
+ CpuMaxRatio: {{.CpuMaxRatio}}%
  MemMax: {{.MemMax}}Gi {{.MemMaxTime.Format "Jan _2 15:04:05"}}
  MemMin: {{.MemMin}}Gi {{.MemMinTime.Format "Jan _2 15:04:05"}}
  MemAvg: {{.MemAvg}}
  MemVolatility: {{.MemVolatility}}%
+ MemMaxRatio: {{.MemMaxRatio}}%
 {{- end}}
