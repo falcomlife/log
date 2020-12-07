@@ -36,6 +36,7 @@ func (c *Controller) Run(threadiness int, stopCh <-chan struct{}) error {
 	klog.Info("Starting workers")
 	go c.runPrometheusWorker()
 	go c.runCronTask(c.PrometheusMetricQueue)
+	go c.runCleanCronTask()
 	// Launch two workers to process Log resources
 	for i := 0; i < threadiness; i++ {
 		go wait.Until(c.runWorker, time.Second, stopCh)
@@ -360,11 +361,22 @@ func (c *Controller) runCronTask(nodes map[string]log.Node) {
 		batchNodes(nodes, c.nodes)
 		c.prometheusClient.SamplingTimes = 0
 		msg := log.Messages("", "", log.TagId, log.AgentId, "今日日报已生成，请访问"+WebUrl+"查看")
-		fmt.Println(accessToken, msg)
-		//log.SendMessage(accessToken, msg)
+		//fmt.Println(accessToken, msg)
+		log.SendMessage(accessToken, msg)
 	}
-	//crontab.AddFunc("0 0 20 * * ?", task)
-	crontab.AddFunc("0 */1 * * * *", task)
+	crontab.AddFunc("0 0 20 * * ?", task)
+	//crontab.AddFunc("0 */1 * * * *", task)
+	crontab.Start()
+	defer crontab.Stop()
+	select {}
+}
+
+func (c *Controller) runCleanCronTask() {
+	crontab := cron.New(cron.WithSeconds())
+	task := func() {
+		c.PrometheusMetricQueue = make(map[string]log.Node)
+	}
+	crontab.AddFunc("0 0 23 * * ?", task)
 	crontab.Start()
 	defer crontab.Stop()
 	select {}
