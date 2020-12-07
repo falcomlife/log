@@ -34,7 +34,7 @@ func (c *Controller) Run(threadiness int, stopCh <-chan struct{}) error {
 	}
 
 	klog.Info("Starting workers")
-	go c.runPrometheusWorder()
+	go c.runPrometheusWorker()
 	go c.runCronTask(c.PrometheusMetricQueue)
 	// Launch two workers to process Log resources
 	for i := 0; i < threadiness; i++ {
@@ -49,7 +49,7 @@ func (c *Controller) Run(threadiness int, stopCh <-chan struct{}) error {
 }
 
 // run a work for get prometheus
-func (c *Controller) runPrometheusWorder() {
+func (c *Controller) runPrometheusWorker() {
 	// default period value is 30
 	period := c.prometheusClient.Period
 	if period == 0 {
@@ -72,6 +72,15 @@ func (c *Controller) runPrometheusWorder() {
 					continue
 				}
 				c.batchForMem(nodes2)
+				nodes3, err := c.prometheusClient.Get(log.NodeDiskUsed)
+				if err != nil {
+					continue
+				}
+				nodes4, err := c.prometheusClient.Get(log.NodeDiskTotal)
+				if err != nil {
+					continue
+				}
+				c.batchForDisk(nodes3, nodes4)
 				c.prometheusClient.SamplingTimes++
 			} else {
 				continue
@@ -198,6 +207,51 @@ func (c *Controller) batchForMem(nodes map[string]log.Node) {
 	}
 }
 
+func (c *Controller) batchForDisk(nodes3 map[string]log.Node, nodes4 map[string]log.Node) {
+	for _, node := range nodes3 {
+		var nodeOld log.Node
+		if _, ok := c.PrometheusMetricQueue[node.Name]; ok {
+			// there is node in map
+			nodeOld = c.PrometheusMetricQueue[node.Name]
+		} else {
+			// there is not node in map
+			nodeOld = log.Node{
+				Name:      node.Name,
+				Cpu:       make(map[string]log.Cpu),
+				CpuSumMin: math.MaxFloat64,
+				MemMin:    math.MaxFloat64,
+			}
+		}
+		diskused, err := strconv.ParseFloat(fmt.Sprintf("%.2f", node.DiskUsed/math.Pow(2, 30)), 64)
+		if err != nil {
+			klog.Error(err)
+		}
+		nodeOld.DiskUsed = diskused
+		c.PrometheusMetricQueue[node.Name] = nodeOld
+	}
+	for _, node := range nodes4 {
+		var nodeOld log.Node
+		if _, ok := c.PrometheusMetricQueue[node.Name]; ok {
+			// there is node in map
+			nodeOld = c.PrometheusMetricQueue[node.Name]
+		} else {
+			// there is not node in map
+			nodeOld = log.Node{
+				Name:      node.Name,
+				Cpu:       make(map[string]log.Cpu),
+				CpuSumMin: math.MaxFloat64,
+				MemMin:    math.MaxFloat64,
+			}
+		}
+		disktotal, err := strconv.ParseFloat(fmt.Sprintf("%.2f", node.DiskTotal/math.Pow(2, 30)), 64)
+		if err != nil {
+			klog.Error(err)
+		}
+		nodeOld.DiskTotal = disktotal
+		c.PrometheusMetricQueue[node.Name] = nodeOld
+	}
+}
+
 // runWorker is a long-running function that will couanyntinually call the
 // processNextWorkItem function in order to read and process a message on the
 // workqueue.
@@ -302,7 +356,6 @@ func (c *Controller) updateLogStatus(l *logv1alpha1.Log) error {
 func (c *Controller) runCronTask(nodes map[string]log.Node) {
 	crontab := cron.New(cron.WithSeconds())
 	task := func() {
-		fmt.Println(nodes["172.16.77.154"].CpuSumMax, "-", nodes["172.16.77.154"].CpuSumMin, "-", nodes["172.16.77.154"].MemMin, "-", nodes["172.16.77.154"].MemMax)
 		accessToken := log.GetAccessToken(log.CorpId, log.Secret)
 		batchNodes(nodes, c.nodes)
 		c.prometheusClient.SamplingTimes = 0
@@ -310,7 +363,7 @@ func (c *Controller) runCronTask(nodes map[string]log.Node) {
 		fmt.Println(accessToken, msg)
 		//log.SendMessage(accessToken, msg)
 	}
-	//crontab.AddFunc("0 0 18 * * ?", task)
+	//crontab.AddFunc("0 0 20 * * ?", task)
 	crontab.AddFunc("0 */1 * * * *", task)
 	crontab.Start()
 	defer crontab.Stop()
@@ -338,6 +391,10 @@ func batchNodes(nodes map[string]log.Node, corev1Nodes map[string]corev1.Node) {
 			continue
 		}
 		value.MemVolatility = memVolatility
+
+		diskratio, err := strconv.ParseFloat(fmt.Sprintf("%.2f", 100*(value.DiskUsed/value.DiskTotal)), 64)
+		value.DiskUsedRatio = diskratio
+
 		nodes[key] = value
 	}
 }

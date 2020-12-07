@@ -83,6 +83,14 @@ func emetricMapToNode(m map[string]interface{}, path string) (map[string]Node, e
 			inst.MemMinTime = time.Now()
 			inst.MemAvg = valueFloat
 			rm[inst.Name] = inst
+		} else if path == NodeDiskUsed {
+			inst.DiskTotal = valueFloat
+			inst.DiskUsed = valueFloat
+			rm[inst.Name] = inst
+		} else if path == NodeDiskTotal {
+			inst.DiskTotal = valueFloat
+			inst.DiskUsed = valueFloat
+			rm[inst.Name] = inst
 		}
 	}
 	return rm, nil

@@ -9,6 +9,8 @@ const (
 	Period                = 30
 	NodeCpuUsedPercentage = "/api/v1/query?query=(%0A%20%20(1%20-%20rate(node_cpu_seconds_total%7Bjob%3D\"node-exporter\"%2C%20mode%3D\"idle\"%7D%5B75s%5D))%0A%2F%20ignoring(cpu)%20group_left%0A%20%20count%20without%20(cpu)(%20node_cpu_seconds_total%7Bjob%3D\"node-exporter\"%2C%20mode%3D\"idle\"%7D)%0A)%0A"
 	NodeMemoryUsed        = "/api/v1/query?query=(%0A%20%20node_memory_MemTotal_bytes%7Bjob%3D%22node-exporter%22%7D%0A-%0A%20%20node_memory_MemFree_bytes%7Bjob%3D%22node-exporter%22%7D%0A-%0A%20%20node_memory_Buffers_bytes%7Bjob%3D%22node-exporter%22%7D%0A-%0A%20%20node_memory_Cached_bytes%7Bjob%3D%22node-exporter%22%7D%0A)"
+	NodeDiskUsed          = "/api/v1/query?query=sum%20by(instance)(%0A%20%20%20%20node_filesystem_size_bytes%7Bjob%3D%22node-exporter%22%2C%20fstype!%3D%22%22%7D%0A%20%20-%0A%20%20%20%20node_filesystem_avail_bytes%7Bjob%3D%22node-exporter%22%2C%20fstype!%3D%22%22%7D%0A%20%20)%0A"
+	NodeDiskTotal         = "/api/v1/query?query=sum%20by(instance)(%0A%20%20%20%20node_filesystem_avail_bytes%7Bjob%3D%22node-exporter%22%2C%20fstype!%3D%22%22%7D%0A%20%20)%0A"
 	CorpId                = "wx46e1733df6787273"
 	AgentId               = 1000052
 	TagId                 = 1
@@ -39,6 +41,9 @@ type Node struct {
 	MemVolatility float64
 	MemMaxRatio   float64
 	MemLaster     float64
+	DiskUsed      float64
+	DiskUsedRatio float64
+	DiskTotal     float64
 	Amplitude     float64
 	Allocatable   Allocatable
 }

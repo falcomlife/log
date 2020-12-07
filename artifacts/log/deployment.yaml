@@ -2,7 +2,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: klog
-  namespace: common
 spec:
   replicas: 1
   selector:
@@ -16,9 +15,13 @@ spec:
       containers:
         - command:
             - /opt/log-controller
-          image: registry.cn-hangzhou.aliyuncs.com/cotte-internal/log:0.0.1
+          image: registry.cn-hangzhou.aliyuncs.com/cotte-internal/log:0.0.2
           imagePullPolicy: Always
           name: klog
+          ports:
+          - containerPort: 8080
+            name: klog
+            protocol: TCP
           resources:
             limits:
               cpu: 500m

@@ -57,8 +57,7 @@ const (
 	// field spce.prometheus.port not define
 	MessageResourceNoPort = "spce.prometheus.port not define"
 	// web url
-	//WebUrl = "https://log.ciiplat.com/web/index.html"
-	WebUrl = "http://localhost:8080/web/index.html"
+	WebUrl = "https://klog.ciiplat.com/index.html"
 )
 
 // Controller is the controller implementation for Log resources

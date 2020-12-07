@@ -11,6 +11,7 @@ WORKDIR /opt
 
 COPY log-controller /opt
 COPY message.template /opt
+COPY web /opt/web
 
 RUN ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
 
