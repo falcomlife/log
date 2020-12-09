@@ -35,7 +35,7 @@ func (c *Controller) Run(threadiness int, stopCh <-chan struct{}) error {
 
 	klog.Info("Starting workers")
 	go c.runPrometheusWorker()
-	go c.runCronTask(c.PrometheusMetricQueue)
+	go c.runCronTask(c.PrometheusMetricQueue, c.PrometheusPodMetricQueue)
 	go c.runCleanCronTask()
 	// Launch two workers to process Log resources
 	for i := 0; i < threadiness; i++ {
@@ -63,25 +63,35 @@ func (c *Controller) runPrometheusWorker() {
 			host := c.prometheusClient.Host
 			port := c.prometheusClient.Port
 			if name != "" && host != "" && port != "" {
-				nodes1, err := c.prometheusClient.Get(log.NodeCpuUsedPercentage)
+				nodes1, err := c.prometheusClient.GetNode(log.NodeCpuUsedPercentage)
 				if err != nil {
 					continue
 				}
 				c.batchForCpu(nodes1)
-				nodes2, err := c.prometheusClient.Get(log.NodeMemoryUsed)
+				nodes2, err := c.prometheusClient.GetNode(log.NodeMemoryUsed)
 				if err != nil {
 					continue
 				}
 				c.batchForMem(nodes2)
-				nodes3, err := c.prometheusClient.Get(log.NodeDiskUsed)
+				nodes3, err := c.prometheusClient.GetNode(log.NodeDiskUsed)
 				if err != nil {
 					continue
 				}
-				nodes4, err := c.prometheusClient.Get(log.NodeDiskTotal)
+				nodes4, err := c.prometheusClient.GetNode(log.NodeDiskTotal)
 				if err != nil {
 					continue
 				}
 				c.batchForDisk(nodes3, nodes4)
+				pod1, err := c.prometheusClient.GetPod(log.PodCpuUsed)
+				if err != nil {
+					continue
+				}
+				c.batchForPodCpu(pod1)
+				pod2, err := c.prometheusClient.GetPod(log.PodMemoryUsed)
+				if err != nil {
+					continue
+				}
+				c.batchForPodMem(pod2)
 				c.prometheusClient.SamplingTimes++
 			} else {
 				continue
@@ -187,14 +197,12 @@ func (c *Controller) batchForMem(nodes map[string]log.Node) {
 			nodeOld.MemMin = memValue
 			nodeOld.MemMinTime = time.Now()
 		}
-		if ratio := memValue - nodeOld.MemLaster; ratio > nodeOld.MemMaxRatio && nodeOld.MemLaster != 0 {
-			allocatable := c.nodes[nodeOld.Name].Status.Allocatable
-			ft2 := fmt.Sprintf("%.2f", 100*ratio/(float64(allocatable.Memory().Value())/math.Pow(2, 30)))
-			memratio, _ := strconv.ParseFloat(ft2, 64)
-			memratioPre := memratio
-			if memratioPre > nodeOld.MemMax {
-				nodeOld.MemMaxRatio = memratioPre
-			}
+		ratio := memValue - nodeOld.MemLaster
+		allocatable := c.nodes[nodeOld.Name].Status.Allocatable
+		ft2 := fmt.Sprintf("%.2f", 100*ratio/(float64(allocatable.Memory().Value())/math.Pow(2, 30)))
+		memratio, _ := strconv.ParseFloat(ft2, 64)
+		if memratio > nodeOld.MemMaxRatio && nodeOld.MemLaster != 0 {
+			nodeOld.MemMaxRatio = memratio
 		}
 		nodeOld.MemLaster = memValue
 
@@ -250,6 +258,99 @@ func (c *Controller) batchForDisk(nodes3 map[string]log.Node, nodes4 map[string]
 		}
 		nodeOld.DiskTotal = disktotal
 		c.PrometheusMetricQueue[node.Name] = nodeOld
+	}
+}
+
+func (c *Controller) batchForPodCpu(pods map[string]log.Pod) {
+	for _, pod := range pods {
+		var podOld log.Pod
+		if _, ok := c.PrometheusPodMetricQueue[pod.Name]; ok {
+			// there is node in map
+			podOld = c.PrometheusPodMetricQueue[pod.Name]
+		} else {
+			// there is not node in map
+			podOld = log.Pod{
+				Name:      pod.Name,
+				Namespace: pod.Namespace,
+				CpuSumMin: math.MaxFloat64,
+				MemMin:    math.MaxFloat64,
+			}
+		}
+		value, err := strconv.ParseFloat(fmt.Sprintf("%.2f", pod.CpuSumMax*1000), 64)
+		if err != nil {
+			klog.Warning(err)
+			continue
+		}
+		if podOld.CpuSumMax < value {
+			podOld.CpuSumMax = value
+			podOld.CpuSumMaxTime = pod.CpuSumMaxTime
+		}
+		if podOld.CpuSumMin > value {
+			podOld.CpuSumMin = value
+			podOld.CpuSumMinTime = pod.CpuSumMinTime
+		}
+		if ratio := value - podOld.CpuLaster; ratio > podOld.CpuMaxRatio && podOld.CpuLaster != 0 {
+			r, _ := strconv.ParseFloat(fmt.Sprintf("%.2f", ratio), 64)
+			podOld.CpuMaxRatio = r
+		}
+		podOld.CpuLaster = value
+
+		cpuAvgtemp := (podOld.CpuSumAvg*float64(c.prometheusClient.SamplingTimes) + value) / float64(c.prometheusClient.SamplingTimes+1)
+		cpuAvg, err := strconv.ParseFloat(fmt.Sprintf("%.2f", cpuAvgtemp), 64)
+		if err != nil {
+			klog.Warning(err)
+		}
+		podOld.CpuSumAvg = cpuAvg
+		c.PrometheusPodMetricQueue[pod.Name] = podOld
+	}
+}
+
+func (c *Controller) batchForPodMem(pods map[string]log.Pod) {
+	for _, pod := range pods {
+		var podOld log.Pod
+		if _, ok := c.PrometheusPodMetricQueue[pod.Name]; ok {
+			// there is pod in map
+			podOld = c.PrometheusPodMetricQueue[pod.Name]
+		} else {
+			// there is not pod in map
+			podOld = log.Pod{
+				Name:      pod.Name,
+				Namespace: pod.Namespace,
+				CpuSumMin: math.MaxFloat64,
+				MemMin:    math.MaxFloat64,
+			}
+		}
+		memUsedNew := pod.MemMax / math.Pow(2, 30)
+		memValue, err := strconv.ParseFloat(fmt.Sprintf("%.2f", memUsedNew), 64)
+		if podOld.MemMax < memUsedNew {
+			if err != nil {
+				klog.Warning(err)
+				continue
+			}
+			podOld.MemMax = memValue
+			podOld.MemMaxTime = time.Now()
+		}
+		if podOld.MemMin > memUsedNew {
+			if err != nil {
+				klog.Warning(err)
+				continue
+			}
+			podOld.MemMin = memValue
+			podOld.MemMinTime = time.Now()
+		}
+		ratio, _ := strconv.ParseFloat(fmt.Sprintf("%.2f", memValue-podOld.MemLaster), 64)
+		if ratio > podOld.MemMaxRatio && podOld.MemLaster != 0 {
+			podOld.MemMaxRatio = ratio
+		}
+		podOld.MemLaster = memValue
+
+		memAvgtemp := (podOld.MemAvg*float64(c.prometheusClient.SamplingTimes) + memUsedNew) / float64(c.prometheusClient.SamplingTimes+1)
+		memAvg, err := strconv.ParseFloat(fmt.Sprintf("%.2f", memAvgtemp), 64)
+		if err != nil {
+			klog.Warning(err)
+		}
+		podOld.MemAvg = memAvg
+		c.PrometheusPodMetricQueue[pod.Name] = podOld
 	}
 }
 
@@ -354,11 +455,12 @@ func (c *Controller) updateLogStatus(l *logv1alpha1.Log) error {
 	return nil
 }
 
-func (c *Controller) runCronTask(nodes map[string]log.Node) {
+func (c *Controller) runCronTask(nodes map[string]log.Node, pods map[string]log.Pod) {
 	crontab := cron.New(cron.WithSeconds())
 	task := func() {
 		accessToken := log.GetAccessToken(log.CorpId, log.Secret)
 		batchNodes(nodes, c.nodes)
+		batchPods(pods)
 		c.prometheusClient.SamplingTimes = 0
 		msg := log.Messages("", "", log.TagId, log.AgentId, "今日日报已生成，请访问"+WebUrl+"查看")
 		//fmt.Println(accessToken, msg)
@@ -408,5 +510,16 @@ func batchNodes(nodes map[string]log.Node, corev1Nodes map[string]corev1.Node) {
 		value.DiskUsedRatio = diskratio
 
 		nodes[key] = value
+
+	}
+}
+
+func batchPods(pods map[string]log.Pod) {
+	for key, value := range pods {
+		cpu, _ := strconv.ParseFloat(fmt.Sprintf("%.2f", value.CpuSumMax-value.CpuSumMin), 64)
+		value.CpuVolatility = cpu
+		mem, _ := strconv.ParseFloat(fmt.Sprintf("%.2f", value.MemMax-value.MemMin), 64)
+		value.MemVolatility = mem
+		pods[key] = value
 	}
 }

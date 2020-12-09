@@ -68,11 +68,12 @@ type Controller struct {
 	logclientset clientset.Interface
 	// prometheus datasource
 	prometheusClient log.PrometheusClient
-	// queue for the metrics, those come from prometheus
+	// queue for the node metrics, those come from prometheus
 	PrometheusMetricQueue map[string]log.Node
-
-	logsLister listers.LogLister
-	logsSynced cache.InformerSynced
+	// queue for the pod metrics, those come from prometheus
+	PrometheusPodMetricQueue map[string]log.Pod
+	logsLister               listers.LogLister
+	logsSynced               cache.InformerSynced
 	// workqueue is a rate limited work queue. This is used to queue work to be
 	// processed instead of performing it as soon as a change happens. This
 	// means we can ensure we only process a fixed amount of resources at a
@@ -104,15 +105,16 @@ func NewController(
 	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: controllerAgentName})
 
 	controller := &Controller{
-		kubeclientset:         kubeclientset,
-		logclientset:          logclientset,
-		prometheusClient:      log.PrometheusClient{},
-		logsLister:            logInformer.Lister(),
-		logsSynced:            logInformer.Informer().HasSynced,
-		PrometheusMetricQueue: make(map[string]log.Node),
-		workqueue:             workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "Logs"),
-		recorder:              recorder,
-		nodes:                 map[string]corev1.Node{},
+		kubeclientset:            kubeclientset,
+		logclientset:             logclientset,
+		prometheusClient:         log.PrometheusClient{},
+		logsLister:               logInformer.Lister(),
+		logsSynced:               logInformer.Informer().HasSynced,
+		PrometheusMetricQueue:    make(map[string]log.Node),
+		PrometheusPodMetricQueue: make(map[string]log.Pod),
+		workqueue:                workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "Logs"),
+		recorder:                 recorder,
+		nodes:                    map[string]corev1.Node{},
 	}
 
 	klog.Info("Setting up event handlers")

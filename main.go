@@ -47,6 +47,9 @@ var (
 type NodeController struct {
 	beego.Controller
 }
+type PodController struct {
+	beego.Controller
+}
 
 func (this *NodeController) Get() {
 	var result string
@@ -73,10 +76,31 @@ func (this *NodeController) Get() {
 	this.Ctx.WriteString(result)
 }
 
+func (this *PodController) Get() {
+	var result string
+	var list = make([]interface{}, 0)
+	for _, v := range controller.PrometheusPodMetricQueue {
+		list = append(list, v)
+	}
+	sort.SliceStable(list, func(i, j int) bool {
+		n1, _ := list[i].(log.Pod)
+		n2, _ := list[j].(log.Pod)
+		return n1.Namespace < n2.Namespace
+	})
+	b, err := json.Marshal(list)
+	if err != nil {
+		result = err.Error()
+	} else {
+		result = string(b)
+	}
+	this.Ctx.WriteString(result)
+}
+
 func main() {
 	go runCrd()
 	beego.SetStaticPath("/", "web")
 	beego.Router("/nodes", &NodeController{})
+	beego.Router("/pods", &PodController{})
 	beego.InsertFilter("*", beego.BeforeRouter, cors.Allow(&cors.Options{
 		AllowAllOrigins:  true,
 		AllowMethods:     []string{"*"},
