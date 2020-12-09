@@ -320,7 +320,7 @@ func (c *Controller) batchForPodMem(pods map[string]log.Pod) {
 				MemMin:    math.MaxFloat64,
 			}
 		}
-		memUsedNew := pod.MemMax / math.Pow(2, 30)
+		memUsedNew := pod.MemMax / math.Pow(2, 20)
 		memValue, err := strconv.ParseFloat(fmt.Sprintf("%.2f", memUsedNew), 64)
 		if podOld.MemMax < memUsedNew {
 			if err != nil {
