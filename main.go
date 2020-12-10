@@ -34,8 +34,6 @@ import (
 	"os"
 	"sort"
 	"time"
-	// Uncomment the following line to load the gcp plugin (only required to authenticate against GKE clusters).
-	// _ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 )
 
 var (
@@ -43,58 +41,6 @@ var (
 	kubeconfig string
 	controller *controller2.Controller
 )
-
-type NodeController struct {
-	beego.Controller
-}
-type PodController struct {
-	beego.Controller
-}
-
-func (this *NodeController) Get() {
-	var result string
-	var list = make([]interface{}, 0)
-	for _, v := range controller.PrometheusMetricQueue {
-		list = append(list, v)
-	}
-	sort.SliceStable(list, func(i, j int) bool {
-		n1, _ := list[i].(log.Node)
-		n2, _ := list[j].(log.Node)
-		return n1.Name < n2.Name
-	})
-	var resList = make([]interface{}, 0)
-	for _, li := range list {
-		resList = append(resList, li)
-		resList = append(resList, li)
-	}
-	b, err := json.Marshal(resList)
-	if err != nil {
-		result = err.Error()
-	} else {
-		result = string(b)
-	}
-	this.Ctx.WriteString(result)
-}
-
-func (this *PodController) Get() {
-	var result string
-	var list = make([]interface{}, 0)
-	for _, v := range controller.PrometheusPodMetricQueue {
-		list = append(list, v)
-	}
-	sort.SliceStable(list, func(i, j int) bool {
-		n1, _ := list[i].(log.Pod)
-		n2, _ := list[j].(log.Pod)
-		return n1.Namespace < n2.Namespace
-	})
-	b, err := json.Marshal(list)
-	if err != nil {
-		result = err.Error()
-	} else {
-		result = string(b)
-	}
-	this.Ctx.WriteString(result)
-}
 
 func main() {
 	go runCrd()
@@ -160,4 +106,58 @@ func runCrd() {
 func init() {
 	flag.StringVar(&kubeconfig, "kubeconfig", "test.kubeconfig", "Path to a kubeconfig. Only required if out-of-cluster.")
 	flag.StringVar(&masterURL, "master", "", "The address of the Kubernetes API server. Overrides any value in kubeconfig. Only required if out-of-cluster.")
+}
+
+type NodeController struct {
+	beego.Controller
+}
+type PodController struct {
+	beego.Controller
+}
+
+// get node info
+func (this *NodeController) Get() {
+	var result string
+	var list = make([]interface{}, 0)
+	for _, v := range controller.PrometheusMetricQueue {
+		list = append(list, v)
+	}
+	sort.SliceStable(list, func(i, j int) bool {
+		n1, _ := list[i].(log.Node)
+		n2, _ := list[j].(log.Node)
+		return n1.Name < n2.Name
+	})
+	var resList = make([]interface{}, 0)
+	for _, li := range list {
+		resList = append(resList, li)
+		resList = append(resList, li)
+	}
+	b, err := json.Marshal(resList)
+	if err != nil {
+		result = err.Error()
+	} else {
+		result = string(b)
+	}
+	this.Ctx.WriteString(result)
+}
+
+// get pod info
+func (this *PodController) Get() {
+	var result string
+	var list = make([]interface{}, 0)
+	for _, v := range controller.PrometheusPodMetricQueue {
+		list = append(list, v)
+	}
+	sort.SliceStable(list, func(i, j int) bool {
+		n1, _ := list[i].(log.Pod)
+		n2, _ := list[j].(log.Pod)
+		return n1.Namespace < n2.Namespace
+	})
+	b, err := json.Marshal(list)
+	if err != nil {
+		result = err.Error()
+	} else {
+		result = string(b)
+	}
+	this.Ctx.WriteString(result)
 }

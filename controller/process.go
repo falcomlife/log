@@ -132,7 +132,7 @@ func (c *Controller) batchForCpu(nodes map[string]log.Node) {
 		}
 		cpuSumNew := cpuNewvValueSum / float64(len(node.Cpu)) * 100
 		cpuValue, err := strconv.ParseFloat(fmt.Sprintf("%.2f", cpuSumNew), 64)
-		if nodeOld.CpuSumMax < cpuSumNew {
+		if nodeOld.CpuSumMax <= cpuSumNew {
 			if err != nil {
 				klog.Warning(err)
 				continue
@@ -140,7 +140,7 @@ func (c *Controller) batchForCpu(nodes map[string]log.Node) {
 			nodeOld.CpuSumMax = cpuValue
 			nodeOld.CpuSumMaxTime = time.Now()
 		}
-		if nodeOld.CpuSumMin > cpuSumNew {
+		if nodeOld.CpuSumMin >= cpuSumNew {
 			if err != nil {
 				klog.Warning(err)
 				continue
@@ -181,7 +181,7 @@ func (c *Controller) batchForMem(nodes map[string]log.Node) {
 		}
 		memUsedNew := node.MemMax / math.Pow(2, 30)
 		memValue, err := strconv.ParseFloat(fmt.Sprintf("%.2f", memUsedNew), 64)
-		if nodeOld.MemMax < memUsedNew {
+		if nodeOld.MemMax <= memUsedNew {
 			if err != nil {
 				klog.Warning(err)
 				continue
@@ -189,7 +189,7 @@ func (c *Controller) batchForMem(nodes map[string]log.Node) {
 			nodeOld.MemMax = memValue
 			nodeOld.MemMaxTime = time.Now()
 		}
-		if nodeOld.MemMin > memUsedNew {
+		if nodeOld.MemMin >= memUsedNew {
 			if err != nil {
 				klog.Warning(err)
 				continue
@@ -281,11 +281,11 @@ func (c *Controller) batchForPodCpu(pods map[string]log.Pod) {
 			klog.Warning(err)
 			continue
 		}
-		if podOld.CpuSumMax < value {
+		if podOld.CpuSumMax <= value {
 			podOld.CpuSumMax = value
 			podOld.CpuSumMaxTime = pod.CpuSumMaxTime
 		}
-		if podOld.CpuSumMin > value {
+		if podOld.CpuSumMin >= value {
 			podOld.CpuSumMin = value
 			podOld.CpuSumMinTime = pod.CpuSumMinTime
 		}
@@ -322,21 +322,21 @@ func (c *Controller) batchForPodMem(pods map[string]log.Pod) {
 		}
 		memUsedNew := pod.MemMax / math.Pow(2, 20)
 		memValue, err := strconv.ParseFloat(fmt.Sprintf("%.2f", memUsedNew), 64)
-		if podOld.MemMax < memUsedNew {
+		if podOld.MemMax <= memValue {
 			if err != nil {
 				klog.Warning(err)
 				continue
 			}
 			podOld.MemMax = memValue
-			podOld.MemMaxTime = time.Now()
+			podOld.MemMaxTime = pod.MemMaxTime
 		}
-		if podOld.MemMin > memUsedNew {
+		if podOld.MemMin >= memValue {
 			if err != nil {
 				klog.Warning(err)
 				continue
 			}
 			podOld.MemMin = memValue
-			podOld.MemMinTime = time.Now()
+			podOld.MemMinTime = pod.MemMinTime
 		}
 		ratio, _ := strconv.ParseFloat(fmt.Sprintf("%.2f", memValue-podOld.MemLaster), 64)
 		if ratio > podOld.MemMaxRatio && podOld.MemLaster != 0 {
@@ -463,8 +463,8 @@ func (c *Controller) runCronTask(nodes map[string]log.Node, pods map[string]log.
 		batchPods(pods)
 		c.prometheusClient.SamplingTimes = 0
 		msg := log.Messages("", "", log.TagId, log.AgentId, "今日日报已生成，请访问"+WebUrl+"查看")
-		//fmt.Println(accessToken, msg)
-		log.SendMessage(accessToken, msg)
+		fmt.Println(accessToken, msg)
+		//log.SendMessage(accessToken, msg)
 	}
 	crontab.AddFunc("0 0 20 * * ?", task)
 	//crontab.AddFunc("0 */1 * * * *", task)
