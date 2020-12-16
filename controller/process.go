@@ -9,9 +9,11 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
+	"k8s.io/log-controller/common"
 	"k8s.io/log-controller/log"
 	logv1alpha1 "k8s.io/log-controller/pkg/apis/logcontroller/v1alpha1"
 	"math"
+	"os"
 	"strconv"
 	"time"
 )
@@ -34,14 +36,14 @@ func (c *Controller) Run(threadiness int, stopCh <-chan struct{}) error {
 	}
 
 	klog.Info("Starting workers")
-	go c.runPrometheusWorker()
-	go c.runCronTask(c.PrometheusMetricQueue, c.PrometheusPodMetricQueue)
-	go c.runCleanCronTask()
+
 	// Launch two workers to process Log resources
 	for i := 0; i < threadiness; i++ {
 		go wait.Until(c.runWorker, time.Second, stopCh)
 	}
-
+	go c.runPrometheusWorker()
+	go c.runCronTask(c.PrometheusMetricQueue, c.PrometheusPodMetricQueue)
+	go c.runCleanCronTask()
 	klog.Info("Started workers")
 	<-stopCh
 	klog.Info("Shutting down workers")
@@ -95,6 +97,29 @@ func (c *Controller) runPrometheusWorker() {
 				c.prometheusClient.SamplingTimes++
 			} else {
 				continue
+			}
+			c.warningForCpu()
+		}
+	}
+}
+
+func (c *Controller) warningForCpu() {
+	for nameNode, node := range c.PrometheusMetricQueue {
+		for nameSample, nodeSample := range c.NodeCpuAnalysis {
+			if nameNode == nameSample {
+				cpuExtremePointMedian := nodeSample.ExtremePointMedian * 100
+				cpuValue, _ := strconv.ParseFloat(fmt.Sprintf("%.2f", cpuExtremePointMedian), 64)
+				if node.CpuLaster > cpuValue {
+					cl := strconv.FormatFloat(node.CpuLaster, 'f', -1, 64)
+					cv := strconv.FormatFloat(cpuValue, 'f', -1, 64)
+					msg := nameNode + "cpu occupy is high now is " + cl + "% and warning value is " + cv + "%"
+					accessToken := log.GetAccessToken(log.CorpId, log.Secret)
+					if os.Getenv("LOG.ENV") == "PROD" {
+						log.SendMessage(accessToken, msg)
+					} else {
+						fmt.Println(msg)
+					}
+				}
 			}
 		}
 	}
@@ -412,8 +437,7 @@ func (c *Controller) syncHandler(key string) error {
 	if err != nil {
 		return err
 	}
-
-	c.recorder.Event(log, corev1.EventTypeNormal, SuccessSynced, MessageResourceSynced)
+	//c.recorder.Event(log, corev1.EventTypeNormal, SuccessSynced, MessageResourceSynced)
 	return nil
 }
 
@@ -461,16 +485,60 @@ func (c *Controller) runCronTask(nodes map[string]log.Node, pods map[string]log.
 		accessToken := log.GetAccessToken(log.CorpId, log.Secret)
 		batchNodes(nodes, c.nodes)
 		batchPods(pods)
+		analysis(c)
+		//log.Draw(c.NodeCpuAnalysis)
 		c.prometheusClient.SamplingTimes = 0
 		msg := log.Messages("", "", log.TagId, log.AgentId, "今日日报已生成，请访问"+WebUrl+"查看")
-		fmt.Println(accessToken, msg)
-		//log.SendMessage(accessToken, msg)
+		if os.Getenv("LOG.ENV") == "PROD" {
+			log.SendMessage(accessToken, msg)
+		} else {
+			fmt.Println(accessToken, msg)
+		}
+		obj, shutdown := c.workqueue.Get()
+		if shutdown {
+			return
+		}
+		if key, ok := obj.(string); !ok {
+			return
+		} else {
+			namespace, name, err := cache.SplitMetaNamespaceKey(key)
+			log, err := c.logsLister.Logs(namespace).Get(name)
+			if err != nil {
+				klog.Error(err)
+				return
+			}
+			c.recorder.Event(log, corev1.EventTypeNormal, SuccessSended, MessageResourceSended)
+		}
+		defer c.workqueue.Done(obj)
 	}
-	crontab.AddFunc("0 0 20 * * ?", task)
-	//crontab.AddFunc("0 */1 * * * *", task)
+	if os.Getenv("LOG.ENV") == "PROD" {
+		crontab.AddFunc("0 0 20 * * ?", task)
+
+	} else {
+		crontab.AddFunc("0 */1 * * * *", task)
+	}
 	crontab.Start()
 	defer crontab.Stop()
 	select {}
+}
+
+func analysis(c *Controller) error {
+	cpu, err := log.AnalysisCpu()
+	mem, err := log.AnalysisMemory()
+	if err != nil {
+		return err
+	}
+	for name, node := range cpu {
+		node.ExtremePointMedian = common.Median(node.GetMaximumPoint())
+		cpu[name] = node
+	}
+	for name, node := range mem {
+		node.ExtremePointMedian = common.Median(node.GetMaximumPoint())
+		mem[name] = node
+	}
+	c.NodeCpuAnalysis = cpu
+	c.NodeMemoryAnalysis = mem
+	return nil
 }
 
 func (c *Controller) runCleanCronTask() {
@@ -505,12 +573,9 @@ func batchNodes(nodes map[string]log.Node, corev1Nodes map[string]corev1.Node) {
 			continue
 		}
 		value.MemVolatility = memVolatility
-
 		diskratio, err := strconv.ParseFloat(fmt.Sprintf("%.2f", 100*(value.DiskUsed/value.DiskTotal)), 64)
 		value.DiskUsedRatio = diskratio
-
 		nodes[key] = value
-
 	}
 }
 

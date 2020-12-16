@@ -17,7 +17,6 @@ limitations under the License.
 package main
 
 import (
-	"encoding/json"
 	"flag"
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/plugins/cors"
@@ -26,13 +25,12 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/klog/v2"
+	"k8s.io/log-controller/api"
 	controller2 "k8s.io/log-controller/controller"
-	"k8s.io/log-controller/log"
 	clientset "k8s.io/log-controller/pkg/generated/clientset/versioned"
 	informers "k8s.io/log-controller/pkg/generated/informers/externalversions"
 	"k8s.io/log-controller/pkg/signals"
 	"os"
-	"sort"
 	"time"
 )
 
@@ -44,17 +42,7 @@ var (
 
 func main() {
 	go runCrd()
-	beego.SetStaticPath("/", "web")
-	beego.Router("/nodes", &NodeController{})
-	beego.Router("/pods", &PodController{})
-	beego.InsertFilter("*", beego.BeforeRouter, cors.Allow(&cors.Options{
-		AllowAllOrigins:  true,
-		AllowMethods:     []string{"*"},
-		AllowHeaders:     []string{"*"},
-		ExposeHeaders:    []string{"Content-Length"},
-		AllowCredentials: true,
-	}))
-	beego.Run()
+	beegoInit()
 }
 
 func runCrd() {
@@ -108,56 +96,23 @@ func init() {
 	flag.StringVar(&masterURL, "master", "", "The address of the Kubernetes API server. Overrides any value in kubeconfig. Only required if out-of-cluster.")
 }
 
-type NodeController struct {
-	beego.Controller
-}
-type PodController struct {
-	beego.Controller
-}
-
-// get node info
-func (this *NodeController) Get() {
-	var result string
-	var list = make([]interface{}, 0)
-	for _, v := range controller.PrometheusMetricQueue {
-		list = append(list, v)
+func beegoInit() {
+	for {
+		select {
+		case <-time.After(3 * time.Second):
+			if controller != nil {
+				beego.SetStaticPath("/", "web")
+				beego.Router("/nodes", &api.NodeController{Ctl: controller})
+				beego.Router("/pods", &api.PodController{Ctl: controller})
+				beego.InsertFilter("*", beego.BeforeRouter, cors.Allow(&cors.Options{
+					AllowAllOrigins:  true,
+					AllowMethods:     []string{"*"},
+					AllowHeaders:     []string{"*"},
+					ExposeHeaders:    []string{"Content-Length"},
+					AllowCredentials: true,
+				}))
+				beego.Run()
+			}
+		}
 	}
-	sort.SliceStable(list, func(i, j int) bool {
-		n1, _ := list[i].(log.Node)
-		n2, _ := list[j].(log.Node)
-		return n1.Name < n2.Name
-	})
-	var resList = make([]interface{}, 0)
-	for _, li := range list {
-		resList = append(resList, li)
-		resList = append(resList, li)
-	}
-	b, err := json.Marshal(resList)
-	if err != nil {
-		result = err.Error()
-	} else {
-		result = string(b)
-	}
-	this.Ctx.WriteString(result)
-}
-
-// get pod info
-func (this *PodController) Get() {
-	var result string
-	var list = make([]interface{}, 0)
-	for _, v := range controller.PrometheusPodMetricQueue {
-		list = append(list, v)
-	}
-	sort.SliceStable(list, func(i, j int) bool {
-		n1, _ := list[i].(log.Pod)
-		n2, _ := list[j].(log.Pod)
-		return n1.Namespace < n2.Namespace
-	})
-	b, err := json.Marshal(list)
-	if err != nil {
-		result = err.Error()
-	} else {
-		result = string(b)
-	}
-	this.Ctx.WriteString(result)
 }
