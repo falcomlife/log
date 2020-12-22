@@ -27,6 +27,7 @@ import (
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/klog/v2"
 	"k8s.io/log-controller/log"
+	"k8s.io/log-controller/pkg/apis/logcontroller/v1alpha1"
 
 	coreinformers "k8s.io/client-go/informers/core/v1"
 	clientset "k8s.io/log-controller/pkg/generated/clientset/versioned"
@@ -38,21 +39,13 @@ import (
 const controllerAgentName = "log-controller"
 
 const (
-	// SuccessSynced is used as part of the Event 'reason' when a Log is synced
-	SuccessSynced = "Synced"
 	// SuccessSynced is used as part of the Event 'reason' when a message is sended to wechat
 	SuccessSended = "Sended"
 	// ErrResourceExists is used as part of the Event 'reason' when a Log fails
 	// to sync due to a Deployment of the same name already existing.
 	ErrResourceExists = "ErrResourceExists"
 	// MessageResourceSynced is the message used for an Event fired when a Log
-	// is synced successfully
-	MessageResourceSynced = "Log synced successfully"
-	// MessageResourceSynced is the message used for an Event fired when a Log
-	// is synced successfully
 	MessageResourceSended = "Daily report message is sended"
-	// field spce.prometheus.period not define
-	MessageResourceNoPeriod = "spce.prometheus.period not define"
 	// field spce.prometheus.name not define
 	MessageResourceNoName = "spce.prometheus.name not define"
 	// field spce.prometheus.host not define
@@ -65,6 +58,15 @@ const (
 	WebUrl = "https://klog.ciiplat.com/#/node"
 )
 
+const (
+	// define value, unit second
+	WarningSustainedStepDefault = 15
+	// define value, unit second
+	WarningSustainedRangeDefault = 90
+	// define value, cpu %
+	WarningSustainedWarningValueDefault = 80
+)
+
 // Controller is the controller implementation for Log resources
 type Controller struct {
 	// kubeclientset is a standard kubernetes clientset
@@ -73,12 +75,15 @@ type Controller struct {
 	logclientset clientset.Interface
 	// prometheus datasource
 	prometheusClient log.PrometheusClient
+	// setting from yaml
+	warningSetting v1alpha1.Warning
 	// queue for the node metrics, those come from prometheus
 	PrometheusMetricQueue map[string]log.Node
 	// queue for the pod metrics, those come from prometheus
 	PrometheusPodMetricQueue map[string]log.Pod
 	NodeCpuAnalysis          map[string]*log.NodeSample
 	NodeMemoryAnalysis       map[string]*log.NodeSample
+	Warnings                 []*log.WarningList
 	logsLister               listers.LogLister
 	logsSynced               cache.InformerSynced
 	// workqueue is a rate limited work queue. This is used to queue work to be
@@ -115,17 +120,16 @@ func NewController(
 		kubeclientset:            kubeclientset,
 		logclientset:             logclientset,
 		prometheusClient:         log.PrometheusClient{},
+		warningSetting:           v1alpha1.Warning{},
 		logsLister:               logInformer.Lister(),
 		logsSynced:               logInformer.Informer().HasSynced,
 		PrometheusMetricQueue:    make(map[string]log.Node),
 		PrometheusPodMetricQueue: make(map[string]log.Pod),
+		Warnings:                 make([]*log.WarningList, 0),
 		workqueue:                workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "Logs"),
 		recorder:                 recorder,
 		nodes:                    map[string]corev1.Node{},
 	}
-
-	analysis(controller)
-
 	klog.Info("Setting up event handlers")
 	// Set up an event handler for when Log resources change
 	logInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{

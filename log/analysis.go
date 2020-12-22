@@ -5,12 +5,11 @@ import (
 	"k8s.io/klog/v2"
 	"k8s.io/log-controller/common"
 	"strconv"
-	"time"
 )
 
-func AnalysisCpu() (map[string]*NodeSample, error) {
-	now, period := getTimestamp()
-	m, err := getDataByInterface(NodeCpuUsedPercentageRange, strconv.FormatInt(period, 10), strconv.FormatInt(now, 10), "10")
+func AnalysisCpu(protocol, host, port string) (map[string]*NodeSample, error) {
+	now, period := common.GetRangeTime(60 * 60 * 24)
+	m, err := getDataByInterface(protocol, host, port, NodeCpuUsedPercentageRange, period, now, "10")
 	if err != nil {
 		return nil, err
 
@@ -19,9 +18,9 @@ func AnalysisCpu() (map[string]*NodeSample, error) {
 	return nodes, nil
 }
 
-func AnalysisMemory() (map[string]*NodeSample, error) {
-	now, period := getTimestamp()
-	m, err := getDataByInterface(NodeMemoryUsedRange, strconv.FormatInt(period, 10), strconv.FormatInt(now, 10), "10")
+func AnalysisMemory(protocol, host, port string) (map[string]*NodeSample, error) {
+	now, period := common.GetRangeTime(60 * 60 * 24)
+	m, err := getDataByInterface(protocol, host, port, NodeMemoryUsedRange, period, now, "10")
 	if err != nil {
 		return nil, err
 	}
@@ -36,7 +35,7 @@ func batchCpuData(m map[string]interface{}) (map[string]*NodeSample, error) {
 	}
 	for _, nodeSample := range nodes {
 		var valuesTimes []float64
-		var coreCount int = len(nodeSample.Cpu)
+		//var coreCount int = len(nodeSample.Cpu)
 		for _, cpu := range nodeSample.Cpu {
 			if valuesTimes == nil {
 				valuesTimes = make([]float64, len(cpu))
@@ -45,9 +44,9 @@ func batchCpuData(m map[string]interface{}) (map[string]*NodeSample, error) {
 				valuesTimes[index] = valuesTimes[index] + value.Value
 			}
 		}
-		for index, sumAllCore := range valuesTimes {
-			valuesTimes[index] = sumAllCore / float64(coreCount)
-		}
+		//for index, sumAllCore := range valuesTimes {
+		//	valuesTimes[index] = sumAllCore / float64(coreCount)
+		//}
 		indexArrUp, indexArrDown := getArea(valuesTimes)
 		nodeSample.UpArea = indexArrUp
 		nodeSample.DownArea = indexArrDown
@@ -131,9 +130,9 @@ func handlerMem(valuesOrigin []interface{}, nodeSample *NodeSample, name string)
 	return nil
 }
 
-func getDataByInterface(path string, start string, end string, step string) (map[string]interface{}, error) {
+func getDataByInterface(protocol, host, port, path, start, end, step string) (map[string]interface{}, error) {
 	p := path + "&start=" + start + "&end=" + end + "&step=" + step
-	httpclient := common.HttpClient{Protocol: "http", Host: "172.16.77.154", Port: "39090"}
+	httpclient := common.HttpClient{Protocol: protocol, Host: host, Port: port}
 	m := make(map[string]interface{})
 	error := httpclient.Get(p, &m)
 	if error != nil {
@@ -188,12 +187,6 @@ func getArea(values []float64) ([][2]int, [][2]int) {
 		last = v
 	}
 	return indexArrUp, indexArrDown
-}
-
-func getTimestamp() (int64, int64) {
-	timeUnix := time.Now().Unix()
-	timeperiod := timeUnix - 60*60*24
-	return timeUnix, timeperiod
 }
 
 func (n *NodeSample) GetMaximumPoint() []float64 {

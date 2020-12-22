@@ -5,6 +5,7 @@ import (
 	"k8s.io/klog/v2"
 	"k8s.io/log-controller/common"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -43,10 +44,7 @@ func emetricMapToNode(m map[string]interface{}, path string) (map[string]Node, e
 			continue
 		}
 		value, ok := rr["value"].([]interface{})
-		if !ok {
-			klog.Warning("get value fail")
-			continue
-		}
+		values, ok := rr["values"].([]interface{})
 		instance := metric["instance"].(string)
 		var inst Node
 		if _, ok := rm[instance]; ok {
@@ -59,38 +57,62 @@ func emetricMapToNode(m map[string]interface{}, path string) (map[string]Node, e
 				Cpu:  make(map[string]Cpu),
 			}
 		}
-		v, ok := (value[1]).(string)
-		if !ok {
-			klog.Warning("value[1] not a string")
-			continue
-		}
-		valueFloat, err := strconv.ParseFloat(v, 64)
-		if err != nil {
-			klog.Warning(err)
-			continue
-		}
-		if path == NodeCpuUsedPercentage {
-			cpu := Cpu{
-				Value: valueFloat,
-				Time:  time.Now(),
+		if value != nil {
+			v, ok := (value[1]).(string)
+			if !ok {
+				klog.Warning("value[1] not a string")
+				continue
 			}
-			inst.Cpu[(metric["cpu"].(string))] = cpu
-			rm[inst.Name] = inst
-		} else if path == NodeMemoryUsed {
-			inst.MemMax = valueFloat
-			inst.MemMaxTime = time.Now()
-			inst.MemMin = valueFloat
-			inst.MemMinTime = time.Now()
-			inst.MemAvg = valueFloat
-			rm[inst.Name] = inst
-		} else if path == NodeDiskUsed {
-			inst.DiskTotal = valueFloat
-			inst.DiskUsed = valueFloat
-			rm[inst.Name] = inst
-		} else if path == NodeDiskTotal {
-			inst.DiskTotal = valueFloat
-			inst.DiskUsed = valueFloat
-			rm[inst.Name] = inst
+			valueFloat, err := strconv.ParseFloat(v, 64)
+			if err != nil {
+				klog.Warning(err)
+				continue
+			}
+			if path == NodeCpuUsedPercentage {
+				cpu := Cpu{
+					Value: valueFloat,
+					Time:  time.Now(),
+				}
+				inst.Cpu[(metric["cpu"].(string))] = cpu
+				rm[inst.Name] = inst
+			} else if path == NodeMemoryUsed {
+				inst.MemMax = valueFloat
+				inst.MemMaxTime = time.Now()
+				inst.MemMin = valueFloat
+				inst.MemMinTime = time.Now()
+				inst.MemAvg = valueFloat
+				rm[inst.Name] = inst
+			} else if path == NodeDiskUsed {
+				inst.DiskTotal = valueFloat
+				inst.DiskUsed = valueFloat
+				rm[inst.Name] = inst
+			} else if path == NodeDiskTotal {
+				inst.DiskTotal = valueFloat
+				inst.DiskUsed = valueFloat
+				rm[inst.Name] = inst
+			}
+			continue
+		}
+		if values != nil {
+			for index, value := range values {
+				v, _ := value.([]interface{})
+				valueFloat, err := strconv.ParseFloat(v[1].(string), 64)
+				timeint := int64(v[0].(float64))
+				if err != nil {
+					klog.Warning(err)
+					continue
+				}
+				if strings.HasPrefix(path, NodeCpuUsedPercentageSample) {
+					cpu := Cpu{
+						Value: valueFloat,
+						Time:  time.Unix(timeint, 0),
+					}
+					indexStr := strconv.Itoa(index)
+					inst.Cpu[indexStr] = cpu
+					rm[inst.Name] = inst
+				}
+				continue
+			}
 		}
 	}
 	return rm, nil

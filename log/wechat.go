@@ -2,6 +2,7 @@ package log
 
 import (
 	"github.com/json-iterator/go"
+	"k8s.io/klog/v2"
 	"k8s.io/log-controller/common"
 )
 
@@ -50,7 +51,7 @@ func SendMessage(access_token, msg string) []byte {
 	}
 	b, err := client.Post(SendMessagePath+access_token, msg)
 	if err != nil {
-		return nil
+		klog.Error(err)
 	}
 	return b
 }

@@ -8,6 +8,10 @@ import (
 	"sort"
 )
 
+type WarningController struct {
+	beego.Controller
+	Ctl *controller2.Controller
+}
 type NodeController struct {
 	beego.Controller
 	Ctl *controller2.Controller
@@ -15,6 +19,18 @@ type NodeController struct {
 type PodController struct {
 	beego.Controller
 	Ctl *controller2.Controller
+}
+
+// get warning info
+func (this *WarningController) Get() {
+	var result string
+	b, err := json.Marshal(this.Ctl.Warnings)
+	if err != nil {
+		result = err.Error()
+	} else {
+		result = string(b)
+	}
+	this.Ctx.WriteString(result)
 }
 
 // get node info

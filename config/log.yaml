@@ -13,3 +13,8 @@ spec:
 #    host: 172.16.77.154
 #    port: "39090"
 #    period: 10
+  warning:
+    step: 15
+    range: 120
+    warningValue: 90
+

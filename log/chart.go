@@ -8,7 +8,6 @@ import (
 )
 
 func Draw(nodeSample map[string]*NodeSample) {
-
 	for name, node := range nodeSample {
 		p, _ := plot.New()
 		p.Title.Text = name

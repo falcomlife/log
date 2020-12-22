@@ -2,7 +2,6 @@ package controller
 
 import (
 	"fmt"
-	cron "github.com/robfig/cron/v3"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -15,8 +14,11 @@ import (
 	"math"
 	"os"
 	"strconv"
+	"sync"
 	"time"
 )
+
+var mutex sync.Mutex
 
 // Run will set up the event handlers for types we are interested in, as well
 // as syncing informer caches and starting workers. It will block until stopCh
@@ -43,7 +45,9 @@ func (c *Controller) Run(threadiness int, stopCh <-chan struct{}) error {
 	}
 	go c.runPrometheusWorker()
 	go c.runCronTask(c.PrometheusMetricQueue, c.PrometheusPodMetricQueue)
+	go c.runWarningCronTask()
 	go c.runCleanCronTask()
+	analysis(c)
 	klog.Info("Started workers")
 	<-stopCh
 	klog.Info("Shutting down workers")
@@ -84,6 +88,13 @@ func (c *Controller) runPrometheusWorker() {
 					continue
 				}
 				c.batchForDisk(nodes3, nodes4)
+				now, period := common.GetRangeTime(c.warningSetting.Sustained.Range)
+				stepStr := strconv.FormatInt(c.warningSetting.Sustained.Step, 10)
+				nodes5, err := c.prometheusClient.GetNode(log.NodeCpuUsedPercentageSample + "&start=" + period + "&end=" + now + "&step=" + stepStr)
+				if err != nil {
+					continue
+				}
+				c.batchForNodeSample(nodes5)
 				pod1, err := c.prometheusClient.GetPod(log.PodCpuUsed)
 				if err != nil {
 					continue
@@ -98,34 +109,13 @@ func (c *Controller) runPrometheusWorker() {
 			} else {
 				continue
 			}
-			c.warningForCpu()
-		}
-	}
-}
-
-func (c *Controller) warningForCpu() {
-	for nameNode, node := range c.PrometheusMetricQueue {
-		for nameSample, nodeSample := range c.NodeCpuAnalysis {
-			if nameNode == nameSample {
-				cpuExtremePointMedian := nodeSample.ExtremePointMedian * 100
-				cpuValue, _ := strconv.ParseFloat(fmt.Sprintf("%.2f", cpuExtremePointMedian), 64)
-				if node.CpuLaster > cpuValue {
-					cl := strconv.FormatFloat(node.CpuLaster, 'f', -1, 64)
-					cv := strconv.FormatFloat(cpuValue, 'f', -1, 64)
-					msg := nameNode + "cpu occupy is high now is " + cl + "% and warning value is " + cv + "%"
-					accessToken := log.GetAccessToken(log.CorpId, log.Secret)
-					if os.Getenv("LOG.ENV") == "PROD" {
-						log.SendMessage(accessToken, msg)
-					} else {
-						fmt.Println(msg)
-					}
-				}
-			}
 		}
 	}
 }
 
 func (c *Controller) batchForCpu(nodes map[string]log.Node) {
+	defer mutex.Unlock()
+	mutex.Lock()
 	for _, node := range nodes {
 		var nodeOld log.Node
 		if _, ok := c.PrometheusMetricQueue[node.Name]; ok {
@@ -155,9 +145,10 @@ func (c *Controller) batchForCpu(nodes map[string]log.Node) {
 			nodeOld.Cpu[cpuNewKey] = cpuOld
 			cpuNewvValueSum += cpuNewValue.Value
 		}
-		cpuSumNew := cpuNewvValueSum / float64(len(node.Cpu)) * 100
+		cpuSumNew := cpuNewvValueSum * 100
 		cpuValue, err := strconv.ParseFloat(fmt.Sprintf("%.2f", cpuSumNew), 64)
 		if nodeOld.CpuSumMax <= cpuSumNew {
+			// update max cpu value
 			if err != nil {
 				klog.Warning(err)
 				continue
@@ -166,6 +157,7 @@ func (c *Controller) batchForCpu(nodes map[string]log.Node) {
 			nodeOld.CpuSumMaxTime = time.Now()
 		}
 		if nodeOld.CpuSumMin >= cpuSumNew {
+			// update min cpu value
 			if err != nil {
 				klog.Warning(err)
 				continue
@@ -174,22 +166,26 @@ func (c *Controller) batchForCpu(nodes map[string]log.Node) {
 			nodeOld.CpuSumMinTime = time.Now()
 		}
 		if ratio := cpuValue - nodeOld.CpuLaster; ratio > nodeOld.CpuMaxRatio && nodeOld.CpuLaster != 0 {
+			// update cpu ratio
 			r, _ := strconv.ParseFloat(fmt.Sprintf("%.2f", ratio), 64)
 			nodeOld.CpuMaxRatio = r
 		}
 		nodeOld.CpuLaster = cpuValue
-
+		// update cpu avgrage value
 		cpuAvgtemp := (nodeOld.CpuSumAvg*float64(c.prometheusClient.SamplingTimes) + cpuSumNew) / float64(c.prometheusClient.SamplingTimes+1)
 		cpuAvg, err := strconv.ParseFloat(fmt.Sprintf("%.2f", cpuAvgtemp), 64)
 		if err != nil {
 			klog.Warning(err)
 		}
 		nodeOld.CpuSumAvg = cpuAvg
+		// update node in queue
 		c.PrometheusMetricQueue[node.Name] = nodeOld
 	}
 }
 
 func (c *Controller) batchForMem(nodes map[string]log.Node) {
+	defer mutex.Unlock()
+	mutex.Lock()
 	for _, node := range nodes {
 		var nodeOld log.Node
 		if _, ok := c.PrometheusMetricQueue[node.Name]; ok {
@@ -242,6 +238,8 @@ func (c *Controller) batchForMem(nodes map[string]log.Node) {
 }
 
 func (c *Controller) batchForDisk(nodes3 map[string]log.Node, nodes4 map[string]log.Node) {
+	defer mutex.Unlock()
+	mutex.Lock()
 	for _, node := range nodes3 {
 		var nodeOld log.Node
 		if _, ok := c.PrometheusMetricQueue[node.Name]; ok {
@@ -286,7 +284,51 @@ func (c *Controller) batchForDisk(nodes3 map[string]log.Node, nodes4 map[string]
 	}
 }
 
+func (c *Controller) batchForNodeSample(nodes5 map[string]log.Node) {
+	warningValue := float64(c.warningSetting.Sustained.WarningValue)
+	warningValueStr := strconv.FormatFloat(warningValue, 'f', -1, 64)
+	rangetmp := c.warningSetting.Sustained.Range
+	rangeStr := strconv.FormatInt(rangetmp, 10)
+	for nodeName, node := range nodes5 {
+		isHigh := true
+		list := make([]log.Cpu, len(node.Cpu))
+		for times, cpu := range node.Cpu {
+			i, _ := strconv.Atoi(times)
+			list[i] = cpu
+		}
+		for index, cpu := range list {
+			if index != 0 && cpu.Value < node.Cpu[strconv.Itoa(index-1)].Value {
+				isHigh = false
+			}
+			if index == len(node.Cpu)-1 {
+				sub := cpu.Value - node.Cpu["0"].Value
+				if sub <= 0 {
+					continue
+				}
+				leftTime := (warningValue - cpu.Value) / (sub / float64(rangetmp))
+				leftTimeStr := strconv.FormatFloat(leftTime, 'f', -1, 64)
+				if isHigh {
+					msg := log.Messages("", "", log.TagId, log.AgentId, nodeName+"主机"+rangeStr+"秒内cpu持续增长，将在"+leftTimeStr+"秒后超过"+warningValueStr+"%cpu使用时间")
+					sendMessageToWechat(msg)
+					actual, _ := strconv.ParseFloat(fmt.Sprintf("%.2f", cpu.Value), 64)
+					warning := &log.Warning{
+						nodeName,
+						"Cpu快速增长",
+						rangeStr + "秒内cpu持续增长，" + leftTimeStr + "秒后超过" + warningValueStr + "%cpu使用时间",
+						warningValue,
+						actual,
+						time.Now(),
+					}
+					c.addMessage(nodeName, warning)
+				}
+			}
+		}
+	}
+}
+
 func (c *Controller) batchForPodCpu(pods map[string]log.Pod) {
+	defer mutex.Unlock()
+	mutex.Lock()
 	for _, pod := range pods {
 		var podOld log.Pod
 		if _, ok := c.PrometheusPodMetricQueue[pod.Name]; ok {
@@ -331,6 +373,8 @@ func (c *Controller) batchForPodCpu(pods map[string]log.Pod) {
 }
 
 func (c *Controller) batchForPodMem(pods map[string]log.Pod) {
+	defer mutex.Unlock()
+	mutex.Lock()
 	for _, pod := range pods {
 		var podOld log.Pod
 		if _, ok := c.PrometheusPodMetricQueue[pod.Name]; ok {
@@ -451,6 +495,7 @@ func (c *Controller) updateLogStatus(l *logv1alpha1.Log) error {
 	host := logCopy.Spec.Prometheus.Host
 	port := logCopy.Spec.Prometheus.Port
 	period := logCopy.Spec.Prometheus.Period
+	warning := logCopy.Spec.Warning
 	if period == 0 {
 		// default period value is 30 second
 		period = log.Period
@@ -471,60 +516,75 @@ func (c *Controller) updateLogStatus(l *logv1alpha1.Log) error {
 		c.recorder.Event(l, corev1.EventTypeWarning, ErrResourceExists, MessageResourceNoPort)
 		return fmt.Errorf("field spce.prometheus.port not define")
 	}
+	if warning.Sustained.Step == 0 {
+		warning.Sustained.Step = WarningSustainedStepDefault
+	}
+	if warning.Sustained.Range == 0 {
+		warning.Sustained.Range = WarningSustainedRangeDefault
+	}
+	if warning.Sustained.WarningValue == 0 {
+		warning.Sustained.WarningValue = WarningSustainedWarningValueDefault
+	}
 	c.prometheusClient.Name = name
 	c.prometheusClient.Host = host
 	c.prometheusClient.Protocol = protocol
 	c.prometheusClient.Port = port
 	c.prometheusClient.Period = period
+	c.warningSetting = warning
 	return nil
 }
 
-func (c *Controller) runCronTask(nodes map[string]log.Node, pods map[string]log.Pod) {
-	crontab := cron.New(cron.WithSeconds())
-	task := func() {
-		accessToken := log.GetAccessToken(log.CorpId, log.Secret)
-		batchNodes(nodes, c.nodes)
-		batchPods(pods)
-		analysis(c)
-		//log.Draw(c.NodeCpuAnalysis)
-		c.prometheusClient.SamplingTimes = 0
-		msg := log.Messages("", "", log.TagId, log.AgentId, "今日日报已生成，请访问"+WebUrl+"查看")
-		if os.Getenv("LOG.ENV") == "PROD" {
-			log.SendMessage(accessToken, msg)
-		} else {
-			fmt.Println(accessToken, msg)
+func (c *Controller) addMessage(nameNode string, warning *log.Warning) {
+	exsit := false
+	warngingtemp := make([]*log.WarningList, len(c.Warnings))
+	copy(warngingtemp, c.Warnings)
+	for i, nodeWarnings := range warngingtemp {
+		if nodeWarnings.Name == nameNode {
+			c.Warnings[i].Children = append(c.Warnings[i].Children, warning)
+			exsit = true
 		}
-		obj, shutdown := c.workqueue.Get()
-		if shutdown {
-			return
-		}
-		if key, ok := obj.(string); !ok {
-			return
-		} else {
-			namespace, name, err := cache.SplitMetaNamespaceKey(key)
-			log, err := c.logsLister.Logs(namespace).Get(name)
-			if err != nil {
-				klog.Error(err)
-				return
-			}
-			c.recorder.Event(log, corev1.EventTypeNormal, SuccessSended, MessageResourceSended)
-		}
-		defer c.workqueue.Done(obj)
 	}
-	if os.Getenv("LOG.ENV") == "PROD" {
-		crontab.AddFunc("0 0 20 * * ?", task)
+	if !exsit {
+		warninglist := log.WarningList{
+			Name:     nameNode,
+			Children: make([]*log.Warning, 0),
+		}
+		warninglist.Children = append(warninglist.Children, warning)
+		c.Warnings = append(c.Warnings, &warninglist)
+	}
+}
 
+func sendMessageToWechat(msg string) {
+	accessToken := log.GetAccessToken(log.CorpId, log.Secret)
+	if os.Getenv("LOG.ENV") == "PROD" {
+		log.SendMessage(accessToken, msg)
 	} else {
-		crontab.AddFunc("0 */1 * * * *", task)
+		fmt.Println(accessToken, msg)
 	}
-	crontab.Start()
-	defer crontab.Stop()
-	select {}
+}
+
+func event(c *Controller) {
+	obj, shutdown := c.workqueue.Get()
+	if shutdown {
+		return
+	}
+	if key, ok := obj.(string); !ok {
+		return
+	} else {
+		namespace, name, err := cache.SplitMetaNamespaceKey(key)
+		log, err := c.logsLister.Logs(namespace).Get(name)
+		if err != nil {
+			klog.Error(err)
+			return
+		}
+		c.recorder.Event(log, corev1.EventTypeNormal, SuccessSended, MessageResourceSended)
+	}
+	defer c.workqueue.Done(obj)
 }
 
 func analysis(c *Controller) error {
-	cpu, err := log.AnalysisCpu()
-	mem, err := log.AnalysisMemory()
+	cpu, err := log.AnalysisCpu(c.prometheusClient.Protocol, c.prometheusClient.Host, c.prometheusClient.Port)
+	mem, err := log.AnalysisMemory(c.prometheusClient.Protocol, c.prometheusClient.Host, c.prometheusClient.Port)
 	if err != nil {
 		return err
 	}
@@ -539,17 +599,6 @@ func analysis(c *Controller) error {
 	c.NodeCpuAnalysis = cpu
 	c.NodeMemoryAnalysis = mem
 	return nil
-}
-
-func (c *Controller) runCleanCronTask() {
-	crontab := cron.New(cron.WithSeconds())
-	task := func() {
-		c.PrometheusMetricQueue = make(map[string]log.Node)
-	}
-	crontab.AddFunc("0 0 23 * * ?", task)
-	crontab.Start()
-	defer crontab.Stop()
-	select {}
 }
 
 func batchNodes(nodes map[string]log.Node, corev1Nodes map[string]corev1.Node) {

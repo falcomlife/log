@@ -104,6 +104,7 @@ func beegoInit() {
 				beego.SetStaticPath("/", "web")
 				beego.Router("/nodes", &api.NodeController{Ctl: controller})
 				beego.Router("/pods", &api.PodController{Ctl: controller})
+				beego.Router("/warnings", &api.WarningController{Ctl: controller})
 				beego.InsertFilter("*", beego.BeforeRouter, cors.Allow(&cors.Options{
 					AllowAllOrigins:  true,
 					AllowMethods:     []string{"*"},
