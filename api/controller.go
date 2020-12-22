@@ -37,9 +37,10 @@ func (this *WarningController) Get() {
 func (this *NodeController) Get() {
 	var result string
 	var list = make([]interface{}, 0)
-	for _, v := range this.Ctl.PrometheusMetricQueue {
+	this.Ctl.PrometheusMetricQueue.Range(func(k, v interface{}) bool {
 		list = append(list, v)
-	}
+		return true
+	})
 	sort.SliceStable(list, func(i, j int) bool {
 		n1, _ := list[i].(log.Node)
 		n2, _ := list[j].(log.Node)

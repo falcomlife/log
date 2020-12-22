@@ -44,15 +44,24 @@ func (c *Controller) Run(threadiness int, stopCh <-chan struct{}) error {
 		go wait.Until(c.runWorker, time.Second, stopCh)
 	}
 	go c.runPrometheusWorker()
+	go initAnalysis(c)
 	go c.runCronTask(c.PrometheusMetricQueue, c.PrometheusPodMetricQueue)
 	go c.runWarningCronTask()
 	go c.runCleanCronTask()
-	analysis(c)
 	klog.Info("Started workers")
 	<-stopCh
 	klog.Info("Shutting down workers")
 
 	return nil
+}
+
+func initAnalysis(c *Controller) {
+	for {
+		if c.prometheusClient.Protocol != "" && c.prometheusClient.Host != "" && c.prometheusClient.Port != "" {
+			analysis(c)
+			break
+		}
+	}
 }
 
 // run a work for get prometheus
@@ -117,19 +126,7 @@ func (c *Controller) batchForCpu(nodes map[string]log.Node) {
 	defer mutex.Unlock()
 	mutex.Lock()
 	for _, node := range nodes {
-		var nodeOld log.Node
-		if _, ok := c.PrometheusMetricQueue[node.Name]; ok {
-			// there is node in map
-			nodeOld = c.PrometheusMetricQueue[node.Name]
-		} else {
-			// there is not node in map
-			nodeOld = log.Node{
-				Name:      node.Name,
-				Cpu:       make(map[string]log.Cpu),
-				CpuSumMin: math.MaxFloat64,
-				MemMin:    math.MaxFloat64,
-			}
-		}
+		var nodeOld = getOldNodes(c.PrometheusMetricQueue, node.Name)
 		cpuNewvValueSum := 0.0
 		for cpuNewKey, cpuNewValue := range node.Cpu {
 			var cpuOld log.Cpu
@@ -179,7 +176,7 @@ func (c *Controller) batchForCpu(nodes map[string]log.Node) {
 		}
 		nodeOld.CpuSumAvg = cpuAvg
 		// update node in queue
-		c.PrometheusMetricQueue[node.Name] = nodeOld
+		c.PrometheusMetricQueue.Store(node.Name, nodeOld)
 	}
 }
 
@@ -187,19 +184,7 @@ func (c *Controller) batchForMem(nodes map[string]log.Node) {
 	defer mutex.Unlock()
 	mutex.Lock()
 	for _, node := range nodes {
-		var nodeOld log.Node
-		if _, ok := c.PrometheusMetricQueue[node.Name]; ok {
-			// there is node in map
-			nodeOld = c.PrometheusMetricQueue[node.Name]
-		} else {
-			// there is not node in map
-			nodeOld = log.Node{
-				Name:      node.Name,
-				Cpu:       make(map[string]log.Cpu),
-				CpuSumMin: math.MaxFloat64,
-				MemMin:    math.MaxFloat64,
-			}
-		}
+		var nodeOld log.Node = getOldNodes(c.PrometheusMetricQueue, node.Name)
 		memUsedNew := node.MemMax / math.Pow(2, 30)
 		memValue, err := strconv.ParseFloat(fmt.Sprintf("%.2f", memUsedNew), 64)
 		if nodeOld.MemMax <= memUsedNew {
@@ -233,7 +218,7 @@ func (c *Controller) batchForMem(nodes map[string]log.Node) {
 			klog.Warning(err)
 		}
 		nodeOld.MemAvg = memAvg
-		c.PrometheusMetricQueue[node.Name] = nodeOld
+		c.PrometheusMetricQueue.Store(node.Name, nodeOld)
 	}
 }
 
@@ -241,46 +226,22 @@ func (c *Controller) batchForDisk(nodes3 map[string]log.Node, nodes4 map[string]
 	defer mutex.Unlock()
 	mutex.Lock()
 	for _, node := range nodes3 {
-		var nodeOld log.Node
-		if _, ok := c.PrometheusMetricQueue[node.Name]; ok {
-			// there is node in map
-			nodeOld = c.PrometheusMetricQueue[node.Name]
-		} else {
-			// there is not node in map
-			nodeOld = log.Node{
-				Name:      node.Name,
-				Cpu:       make(map[string]log.Cpu),
-				CpuSumMin: math.MaxFloat64,
-				MemMin:    math.MaxFloat64,
-			}
-		}
+		var nodeOld log.Node = getOldNodes(c.PrometheusMetricQueue, node.Name)
 		diskused, err := strconv.ParseFloat(fmt.Sprintf("%.2f", node.DiskUsed/math.Pow(2, 30)), 64)
 		if err != nil {
 			klog.Error(err)
 		}
 		nodeOld.DiskUsed = diskused
-		c.PrometheusMetricQueue[node.Name] = nodeOld
+		c.PrometheusMetricQueue.Store(node.Name, nodeOld)
 	}
 	for _, node := range nodes4 {
-		var nodeOld log.Node
-		if _, ok := c.PrometheusMetricQueue[node.Name]; ok {
-			// there is node in map
-			nodeOld = c.PrometheusMetricQueue[node.Name]
-		} else {
-			// there is not node in map
-			nodeOld = log.Node{
-				Name:      node.Name,
-				Cpu:       make(map[string]log.Cpu),
-				CpuSumMin: math.MaxFloat64,
-				MemMin:    math.MaxFloat64,
-			}
-		}
+		var nodeOld log.Node = getOldNodes(c.PrometheusMetricQueue, node.Name)
 		disktotal, err := strconv.ParseFloat(fmt.Sprintf("%.2f", node.DiskTotal/math.Pow(2, 30)), 64)
 		if err != nil {
 			klog.Error(err)
 		}
 		nodeOld.DiskTotal = disktotal
-		c.PrometheusMetricQueue[node.Name] = nodeOld
+		c.PrometheusMetricQueue.Store(node.Name, nodeOld)
 	}
 }
 
@@ -421,6 +382,23 @@ func (c *Controller) batchForPodMem(pods map[string]log.Pod) {
 		podOld.MemAvg = memAvg
 		c.PrometheusPodMetricQueue[pod.Name] = podOld
 	}
+}
+
+func getOldNodes(syncMap sync.Map, name string) log.Node {
+	var nodeOld log.Node
+	if n, ok := syncMap.Load(name); ok {
+		// there is node in map
+		nodeOld = n.(log.Node)
+	} else {
+		// there is not node in map
+		nodeOld = log.Node{
+			Name:      name,
+			Cpu:       make(map[string]log.Cpu),
+			CpuSumMin: math.MaxFloat64,
+			MemMin:    math.MaxFloat64,
+		}
+	}
+	return nodeOld
 }
 
 // runWorker is a long-running function that will couanyntinually call the
@@ -601,8 +579,10 @@ func analysis(c *Controller) error {
 	return nil
 }
 
-func batchNodes(nodes map[string]log.Node, corev1Nodes map[string]corev1.Node) {
-	for key, value := range nodes {
+func batchNodes(nodes sync.Map, corev1Nodes map[string]corev1.Node) {
+	nodes.Range(func(keyOri, valueOri interface{}) bool {
+		key := keyOri.(string)
+		value := valueOri.(log.Node)
 		allocatable := corev1Nodes[key].Status.Allocatable
 		cpuAllocatable := allocatable.Cpu().Value()
 		memAllocatable := allocatable.Memory().Value()
@@ -612,20 +592,21 @@ func batchNodes(nodes map[string]log.Node, corev1Nodes map[string]corev1.Node) {
 		cpuVolatility, err := strconv.ParseFloat(ft1, 64)
 		if err != nil {
 			klog.Warning(err)
-			continue
+			return false
 		}
 		value.CpuVolatility = cpuVolatility
 		ft2 := fmt.Sprintf("%.2f", 100*(value.MemMax-value.MemMin)/(value.Allocatable.Memory/math.Pow(2, 30)))
 		memVolatility, err := strconv.ParseFloat(ft2, 64)
 		if err != nil {
 			klog.Warning(err)
-			continue
+			return false
 		}
 		value.MemVolatility = memVolatility
 		diskratio, err := strconv.ParseFloat(fmt.Sprintf("%.2f", 100*(value.DiskUsed/value.DiskTotal)), 64)
 		value.DiskUsedRatio = diskratio
-		nodes[key] = value
-	}
+		nodes.Store(key, value)
+		return true
+	})
 }
 
 func batchPods(pods map[string]log.Pod) {

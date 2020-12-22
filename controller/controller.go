@@ -28,6 +28,7 @@ import (
 	"k8s.io/klog/v2"
 	"k8s.io/log-controller/log"
 	"k8s.io/log-controller/pkg/apis/logcontroller/v1alpha1"
+	"sync"
 
 	coreinformers "k8s.io/client-go/informers/core/v1"
 	clientset "k8s.io/log-controller/pkg/generated/clientset/versioned"
@@ -78,7 +79,7 @@ type Controller struct {
 	// setting from yaml
 	warningSetting v1alpha1.Warning
 	// queue for the node metrics, those come from prometheus
-	PrometheusMetricQueue map[string]log.Node
+	PrometheusMetricQueue sync.Map
 	// queue for the pod metrics, those come from prometheus
 	PrometheusPodMetricQueue map[string]log.Pod
 	NodeCpuAnalysis          map[string]*log.NodeSample
@@ -123,13 +124,14 @@ func NewController(
 		warningSetting:           v1alpha1.Warning{},
 		logsLister:               logInformer.Lister(),
 		logsSynced:               logInformer.Informer().HasSynced,
-		PrometheusMetricQueue:    make(map[string]log.Node),
+		PrometheusMetricQueue:    sync.Map{},
 		PrometheusPodMetricQueue: make(map[string]log.Pod),
 		Warnings:                 make([]*log.WarningList, 0),
 		workqueue:                workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "Logs"),
 		recorder:                 recorder,
 		nodes:                    map[string]corev1.Node{},
 	}
+
 	klog.Info("Setting up event handlers")
 	// Set up an event handler for when Log resources change
 	logInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{

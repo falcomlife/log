@@ -6,10 +6,11 @@ import (
 	"k8s.io/log-controller/log"
 	"os"
 	"strconv"
+	"sync"
 	"time"
 )
 
-func (c *Controller) runCronTask(nodes map[string]log.Node, pods map[string]log.Pod) {
+func (c *Controller) runCronTask(nodes sync.Map, pods map[string]log.Pod) {
 	crontab := cron.New(cron.WithSeconds())
 	task := func() {
 		batchNodes(nodes, c.nodes)
@@ -37,7 +38,9 @@ func (c *Controller) runWarningCronTask() {
 	task := func() {
 		defer mutex.Unlock()
 		mutex.Lock()
-		for nameNode, node := range c.PrometheusMetricQueue {
+		c.PrometheusMetricQueue.Range(func(nameNodeOri, nodeOri interface{}) bool {
+			nameNode := nameNodeOri.(string)
+			node := nodeOri.(log.Node)
 			for nameSample, nodeSample := range c.NodeCpuAnalysis {
 				if nameNode == nameSample {
 					cpuExtremePointMedian := nodeSample.ExtremePointMedian * 100
@@ -59,7 +62,8 @@ func (c *Controller) runWarningCronTask() {
 					}
 				}
 			}
-		}
+			return true
+		})
 	}
 	crontab.AddFunc("*/10 * * * * *", task)
 	crontab.Start()
@@ -70,7 +74,7 @@ func (c *Controller) runWarningCronTask() {
 func (c *Controller) runCleanCronTask() {
 	crontab := cron.New(cron.WithSeconds())
 	task := func() {
-		c.PrometheusMetricQueue = make(map[string]log.Node)
+		c.PrometheusMetricQueue = sync.Map{}
 		c.Warnings = make([]*log.WarningList, 0)
 	}
 	crontab.AddFunc("0 0 23 * * ?", task)
