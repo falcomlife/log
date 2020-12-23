@@ -66,6 +66,8 @@ const (
 	WarningSustainedRangeDefault = 90
 	// define value, cpu %
 	WarningSustainedWarningValueDefault = 80
+	// define left time for warning
+	WarningSustainedLeftTimeDefault = 60
 )
 
 // Controller is the controller implementation for Log resources

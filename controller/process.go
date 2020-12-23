@@ -267,8 +267,8 @@ func (c *Controller) batchForNodeSample(nodes5 map[string]log.Node) {
 					continue
 				}
 				leftTime := (warningValue - cpu.Value) / (sub / float64(rangetmp))
-				leftTimeStr := strconv.FormatFloat(leftTime, 'f', -1, 64)
-				if isHigh {
+				leftTimeStr := fmt.Sprintf("%.1f", leftTime)
+				if isHigh && leftTime < float64(c.warningSetting.Sustained.LeftTime) {
 					msg := log.Messages("", "", log.TagId, log.AgentId, nodeName+"主机"+rangeStr+"秒内cpu持续增长，将在"+leftTimeStr+"秒后超过"+warningValueStr+"%cpu使用时间")
 					sendMessageToWechat(msg)
 					actual, _ := strconv.ParseFloat(fmt.Sprintf("%.2f", cpu.Value), 64)
@@ -502,6 +502,9 @@ func (c *Controller) updateLogStatus(l *logv1alpha1.Log) error {
 	}
 	if warning.Sustained.WarningValue == 0 {
 		warning.Sustained.WarningValue = WarningSustainedWarningValueDefault
+	}
+	if warning.Sustained.LeftTime == 0 {
+		warning.Sustained.LeftTime = WarningSustainedWarningValueDefault
 	}
 	c.prometheusClient.Name = name
 	c.prometheusClient.Host = host

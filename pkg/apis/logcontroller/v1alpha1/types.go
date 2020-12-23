@@ -53,7 +53,8 @@ type Warning struct {
 type Sustained struct {
 	Step         int64 `json: "step"`
 	Range        int64 `json: "range"`
-	WarningValue int64 `json: warningValue`
+	WarningValue int64 `json: "warningValue"`
+	LeftTime     int   `json: "leftTime"`
 }
 
 // LogStatus is the status for a Log resource
