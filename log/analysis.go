@@ -34,19 +34,16 @@ func batchCpuData(m map[string]interface{}) (map[string]*NodeSample, error) {
 		return nil, err
 	}
 	for _, nodeSample := range nodes {
-		var valuesTimes []float64
-		//var coreCount int = len(nodeSample.Cpu)
+		var valuesTimes []float64 = make([]float64, len(nodeSample.Cpu["0"]))
+		var coreCount int = len(nodeSample.Cpu)
 		for _, cpu := range nodeSample.Cpu {
-			if valuesTimes == nil {
-				valuesTimes = make([]float64, len(cpu))
-			}
 			for index, value := range cpu {
 				valuesTimes[index] = valuesTimes[index] + value.Value
 			}
 		}
-		//for index, sumAllCore := range valuesTimes {
-		//	valuesTimes[index] = sumAllCore / float64(coreCount)
-		//}
+		for sumIndex, sumValue := range valuesTimes {
+			valuesTimes[sumIndex] = sumValue / float64(coreCount)
+		}
 		indexArrUp, indexArrDown := getArea(valuesTimes)
 		nodeSample.UpArea = indexArrUp
 		nodeSample.DownArea = indexArrDown

@@ -142,7 +142,7 @@ func (c *Controller) batchForCpu(nodes map[string]log.Node) {
 			nodeOld.Cpu[cpuNewKey] = cpuOld
 			cpuNewvValueSum += cpuNewValue.Value
 		}
-		cpuSumNew := cpuNewvValueSum * 100
+		cpuSumNew := cpuNewvValueSum / float64(len(node.Cpu)) * 100
 		cpuValue, err := strconv.ParseFloat(fmt.Sprintf("%.2f", cpuSumNew), 64)
 		if nodeOld.CpuSumMax <= cpuSumNew {
 			// update max cpu value
@@ -291,13 +291,13 @@ func (c *Controller) batchForPodCpu(pods map[string]log.Pod) {
 	defer mutex.Unlock()
 	mutex.Lock()
 	for _, pod := range pods {
-		var podOld log.Pod
+		var podOld *log.Pod
 		if _, ok := c.PrometheusPodMetricQueue[pod.Name]; ok {
 			// there is node in map
 			podOld = c.PrometheusPodMetricQueue[pod.Name]
 		} else {
 			// there is not node in map
-			podOld = log.Pod{
+			podOld = &log.Pod{
 				Name:      pod.Name,
 				Namespace: pod.Namespace,
 				CpuSumMin: math.MaxFloat64,
@@ -337,13 +337,13 @@ func (c *Controller) batchForPodMem(pods map[string]log.Pod) {
 	defer mutex.Unlock()
 	mutex.Lock()
 	for _, pod := range pods {
-		var podOld log.Pod
+		var podOld *log.Pod
 		if _, ok := c.PrometheusPodMetricQueue[pod.Name]; ok {
 			// there is pod in map
 			podOld = c.PrometheusPodMetricQueue[pod.Name]
 		} else {
 			// there is not pod in map
-			podOld = log.Pod{
+			podOld = &log.Pod{
 				Name:      pod.Name,
 				Namespace: pod.Namespace,
 				CpuSumMin: math.MaxFloat64,
@@ -384,7 +384,7 @@ func (c *Controller) batchForPodMem(pods map[string]log.Pod) {
 	}
 }
 
-func getOldNodes(syncMap sync.Map, name string) log.Node {
+func getOldNodes(syncMap *sync.Map, name string) log.Node {
 	var nodeOld log.Node
 	if n, ok := syncMap.Load(name); ok {
 		// there is node in map
@@ -561,63 +561,4 @@ func event(c *Controller) {
 		c.recorder.Event(log, corev1.EventTypeNormal, SuccessSended, MessageResourceSended)
 	}
 	defer c.workqueue.Done(obj)
-}
-
-func analysis(c *Controller) error {
-	cpu, err := log.AnalysisCpu(c.prometheusClient.Protocol, c.prometheusClient.Host, c.prometheusClient.Port)
-	mem, err := log.AnalysisMemory(c.prometheusClient.Protocol, c.prometheusClient.Host, c.prometheusClient.Port)
-	if err != nil {
-		return err
-	}
-	for name, node := range cpu {
-		node.ExtremePointMedian = common.Median(node.GetMaximumPoint())
-		cpu[name] = node
-	}
-	for name, node := range mem {
-		node.ExtremePointMedian = common.Median(node.GetMaximumPoint())
-		mem[name] = node
-	}
-	c.NodeCpuAnalysis = cpu
-	c.NodeMemoryAnalysis = mem
-	return nil
-}
-
-func batchNodes(nodes sync.Map, corev1Nodes map[string]corev1.Node) {
-	nodes.Range(func(keyOri, valueOri interface{}) bool {
-		key := keyOri.(string)
-		value := valueOri.(log.Node)
-		allocatable := corev1Nodes[key].Status.Allocatable
-		cpuAllocatable := allocatable.Cpu().Value()
-		memAllocatable := allocatable.Memory().Value()
-		value.Allocatable.Memory = float64(memAllocatable)
-		value.Allocatable.Cpu = float64(cpuAllocatable)
-		ft1 := fmt.Sprintf("%.2f", value.CpuSumMax-value.CpuSumMin)
-		cpuVolatility, err := strconv.ParseFloat(ft1, 64)
-		if err != nil {
-			klog.Warning(err)
-			return false
-		}
-		value.CpuVolatility = cpuVolatility
-		ft2 := fmt.Sprintf("%.2f", 100*(value.MemMax-value.MemMin)/(value.Allocatable.Memory/math.Pow(2, 30)))
-		memVolatility, err := strconv.ParseFloat(ft2, 64)
-		if err != nil {
-			klog.Warning(err)
-			return false
-		}
-		value.MemVolatility = memVolatility
-		diskratio, err := strconv.ParseFloat(fmt.Sprintf("%.2f", 100*(value.DiskUsed/value.DiskTotal)), 64)
-		value.DiskUsedRatio = diskratio
-		nodes.Store(key, value)
-		return true
-	})
-}
-
-func batchPods(pods map[string]log.Pod) {
-	for key, value := range pods {
-		cpu, _ := strconv.ParseFloat(fmt.Sprintf("%.2f", value.CpuSumMax-value.CpuSumMin), 64)
-		value.CpuVolatility = cpu
-		mem, _ := strconv.ParseFloat(fmt.Sprintf("%.2f", value.MemMax-value.MemMin), 64)
-		value.MemVolatility = mem
-		pods[key] = value
-	}
 }

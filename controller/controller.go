@@ -81,9 +81,9 @@ type Controller struct {
 	// setting from yaml
 	warningSetting v1alpha1.Warning
 	// queue for the node metrics, those come from prometheus
-	PrometheusMetricQueue sync.Map
+	PrometheusMetricQueue *sync.Map
 	// queue for the pod metrics, those come from prometheus
-	PrometheusPodMetricQueue map[string]log.Pod
+	PrometheusPodMetricQueue map[string]*log.Pod
 	NodeCpuAnalysis          map[string]*log.NodeSample
 	NodeMemoryAnalysis       map[string]*log.NodeSample
 	Warnings                 []*log.WarningList
@@ -126,8 +126,8 @@ func NewController(
 		warningSetting:           v1alpha1.Warning{},
 		logsLister:               logInformer.Lister(),
 		logsSynced:               logInformer.Informer().HasSynced,
-		PrometheusMetricQueue:    sync.Map{},
-		PrometheusPodMetricQueue: make(map[string]log.Pod),
+		PrometheusMetricQueue:    &sync.Map{},
+		PrometheusPodMetricQueue: make(map[string]*log.Pod),
 		Warnings:                 make([]*log.WarningList, 0),
 		workqueue:                workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "Logs"),
 		recorder:                 recorder,
