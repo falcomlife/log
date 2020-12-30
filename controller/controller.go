@@ -47,6 +47,12 @@ const (
 	ErrResourceExists = "ErrResourceExists"
 	// MessageResourceSynced is the message used for an Event fired when a Log
 	MessageResourceSended = "Daily report message is sended"
+	// web url
+	WebUrl = "https://klog.ciiplat.com/#/node"
+)
+
+// Warning message apply to events when k8s cluster check yaml field
+const (
 	// field spce.prometheus.name not define
 	MessageResourceNoName = "spce.prometheus.name not define"
 	// field spce.prometheus.host not define
@@ -55,8 +61,22 @@ const (
 	MessageResourceNoProtocol = "spce.prometheus.protocol not define"
 	// field spce.prometheus.port not define
 	MessageResourceNoPort = "spce.prometheus.port not define"
-	// web url
-	WebUrl = "https://klog.ciiplat.com/#/node"
+	// use default value
+	MessageUseDefaultWarningSustainedCpuStep = "warning.sustained.cpu.step not define,use default value 15"
+	// use default value
+	MessageUseDefaultWarningSustainedCpuRange = "warning.sustained.cpu.range not define,use default value 90"
+	// use default value
+	MessageUseDefaultWarningSustainedCpuWarningValue = "warning.sustained.cpu.warningValue not define,use default value 80"
+	// use default value
+	MessageUseDefaultWarningSustainedCpuLeftTime = "warning.sustained.cpu.leftTime not define,use default value 60"
+	// use default value
+	MessageUseDefaultWarningSustainedMemoryStep = "warning.sustained.memory.step not define,use default value 15"
+	// use default value
+	MessageUseDefaultWarningSustainedMemoryRange = "warning.sustained.memory.range not define,use default value 90"
+	// use default value
+	MessageUseDefaultWarningSustainedMemoryWarningValue = "warning.sustained.memory.warningValue not define,use default value 80"
+	// use default value
+	MessageUseDefaultWarningSustainedMemoryLeftTime = "warning.sustained.memory.leftTime not define,use default value 60"
 )
 
 const (

@@ -34,7 +34,7 @@ type Log struct {
 // LogSpec is the spec for a Log resource
 type LogSpec struct {
 	Prometheus Prometheus `json:"prometheus"`
-	Warning    Warning    `json: warning`
+	Warning    Warning    `json:"warning"`
 }
 
 type Prometheus struct {
@@ -47,14 +47,26 @@ type Prometheus struct {
 }
 
 type Warning struct {
-	Sustained Sustained `json: "sustained"`
+	Sustained Sustained `json:"sustained"`
 }
 
 type Sustained struct {
-	Step         int64 `json: "step"`
-	Range        int64 `json: "range"`
-	WarningValue int64 `json: "warningValue"`
-	LeftTime     int   `json: "leftTime"`
+	Cpu    Cpu    `json:"cpu"`
+	Memory Memory `json:"memory"`
+}
+
+type Cpu struct {
+	Step         int64 `json:"step"`
+	Range        int64 `json:"range"`
+	WarningValue int64 `json:"warningValue"`
+	LeftTime     int   `json:"leftTime"`
+}
+
+type Memory struct {
+	Step         int64 `json:"step"`
+	Range        int64 `json:"range"`
+	WarningValue int64 `json:"warningValue"`
+	LeftTime     int   `json:"leftTime"`
 }
 
 // LogStatus is the status for a Log resource

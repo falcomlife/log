@@ -75,17 +75,17 @@ func (c *Controller) runWarningCronTask() {
 	select {}
 }
 
-func (c *Controller) runCleanCronTask() {
-	crontab := cron.New(cron.WithSeconds())
-	task := func() {
-		c.PrometheusMetricQueue = &sync.Map{}
-		c.Warnings = make([]*log.WarningList, 0)
-	}
-	crontab.AddFunc("0 0 23 * * ?", task)
-	crontab.Start()
-	defer crontab.Stop()
-	select {}
-}
+//func (c *Controller) runCleanCronTask() {
+//	crontab := cron.New(cron.WithSeconds())
+//	task := func() {
+//		c.PrometheusMetricQueue = &sync.Map{}
+//		c.Warnings = make([]*log.WarningList, 0)
+//	}
+//	crontab.AddFunc("0 0 23 * * ?", task)
+//	crontab.Start()
+//	defer crontab.Stop()
+//	select {}
+//}
 
 func analysis(c *Controller) error {
 	cpu, err := log.AnalysisCpu(c.prometheusClient.Protocol, c.prometheusClient.Host, c.prometheusClient.Port)

@@ -53,8 +53,9 @@ func emetricMapToNode(m map[string]interface{}, path string) (map[string]Node, e
 		} else {
 			// instance not exist in map
 			inst = Node{
-				Name: instance,
-				Cpu:  make(map[string]Cpu),
+				Name:   instance,
+				Cpu:    make(map[string]Cpu),
+				Memory: make(map[string]Memory),
 			}
 		}
 		if value != nil {
@@ -109,6 +110,16 @@ func emetricMapToNode(m map[string]interface{}, path string) (map[string]Node, e
 					}
 					indexStr := strconv.Itoa(index)
 					inst.Cpu[indexStr] = cpu
+					rm[inst.Name] = inst
+				}
+				if strings.HasPrefix(path, NodeMemUsedSample) {
+					inst.MemLaster = valueFloat
+					mem := Memory{
+						Value: valueFloat,
+						Time:  time.Unix(timeint, 0),
+					}
+					indexStr := strconv.Itoa(index)
+					inst.Memory[indexStr] = mem
 					rm[inst.Name] = inst
 				}
 				continue

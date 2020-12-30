@@ -47,7 +47,7 @@ func (c *Controller) Run(threadiness int, stopCh <-chan struct{}) error {
 	go initAnalysis(c)
 	go c.runCronTask(c.PrometheusMetricQueue, c.PrometheusPodMetricQueue)
 	go c.runWarningCronTask()
-	go c.runCleanCronTask()
+	//go c.runCleanCronTask()
 	klog.Info("Started workers")
 	<-stopCh
 	klog.Info("Shutting down workers")
@@ -97,13 +97,20 @@ func (c *Controller) runPrometheusWorker() {
 					continue
 				}
 				c.batchForDisk(nodes3, nodes4)
-				now, period := common.GetRangeTime(c.warningSetting.Sustained.Range)
-				stepStr := strconv.FormatInt(c.warningSetting.Sustained.Step, 10)
+				now, period := common.GetRangeTime(c.warningSetting.Sustained.Cpu.Range)
+				stepStr := strconv.FormatInt(c.warningSetting.Sustained.Cpu.Step, 10)
 				nodes5, err := c.prometheusClient.GetNode(log.NodeCpuUsedPercentageSample + "&start=" + period + "&end=" + now + "&step=" + stepStr)
 				if err != nil {
 					continue
 				}
-				c.batchForNodeSample(nodes5)
+				c.batchForNodeCpuSample(nodes5)
+				now, period = common.GetRangeTime(c.warningSetting.Sustained.Memory.Range)
+				stepStr = strconv.FormatInt(c.warningSetting.Sustained.Memory.Step, 10)
+				nodes6, err := c.prometheusClient.GetNode(log.NodeMemUsedSample + "&start=" + period + "&end=" + now + "&step=" + stepStr)
+				if err != nil {
+					continue
+				}
+				c.batchForNodeMemSample(nodes6)
 				pod1, err := c.prometheusClient.GetPod(log.PodCpuUsed)
 				if err != nil {
 					continue
@@ -245,10 +252,10 @@ func (c *Controller) batchForDisk(nodes3 map[string]log.Node, nodes4 map[string]
 	}
 }
 
-func (c *Controller) batchForNodeSample(nodes5 map[string]log.Node) {
-	warningValue := float64(c.warningSetting.Sustained.WarningValue)
+func (c *Controller) batchForNodeCpuSample(nodes5 map[string]log.Node) {
+	warningValue := float64(c.warningSetting.Sustained.Cpu.WarningValue)
 	warningValueStr := strconv.FormatFloat(warningValue, 'f', -1, 64)
-	rangetmp := c.warningSetting.Sustained.Range
+	rangetmp := c.warningSetting.Sustained.Cpu.Range
 	rangeStr := strconv.FormatInt(rangetmp, 10)
 	for nodeName, node := range nodes5 {
 		isHigh := true
@@ -268,7 +275,10 @@ func (c *Controller) batchForNodeSample(nodes5 map[string]log.Node) {
 				}
 				leftTime := (warningValue - cpu.Value) / (sub / float64(rangetmp))
 				leftTimeStr := fmt.Sprintf("%.1f", leftTime)
-				if isHigh && leftTime < float64(c.warningSetting.Sustained.LeftTime) {
+				if leftTime <= 0 {
+					leftTimeStr = "0"
+				}
+				if isHigh && leftTime < float64(c.warningSetting.Sustained.Cpu.LeftTime) {
 					msg := log.Messages("", "", log.TagId, log.AgentId, nodeName+"主机"+rangeStr+"秒内cpu持续增长，将在"+leftTimeStr+"秒后超过"+warningValueStr+"%cpu使用时间")
 					sendMessageToWechat(msg)
 					actual, _ := strconv.ParseFloat(fmt.Sprintf("%.2f", cpu.Value), 64)
@@ -276,6 +286,54 @@ func (c *Controller) batchForNodeSample(nodes5 map[string]log.Node) {
 						nodeName,
 						"Cpu快速增长",
 						rangeStr + "秒内cpu持续增长，" + leftTimeStr + "秒后超过" + warningValueStr + "%cpu使用时间",
+						warningValue,
+						actual,
+						time.Now(),
+					}
+					c.addMessage(nodeName, warning)
+				}
+			}
+		}
+	}
+}
+
+func (c *Controller) batchForNodeMemSample(nodes6 map[string]log.Node) {
+	warningValue := float64(c.warningSetting.Sustained.Memory.WarningValue)
+	warningValueStr := strconv.FormatFloat(warningValue, 'f', -1, 64)
+	warningValueB := warningValue
+	rangetmp := c.warningSetting.Sustained.Memory.Range
+	rangeStr := strconv.FormatInt(rangetmp, 10)
+	for nodeName, node := range nodes6 {
+		isHigh := true
+		list := make([]log.Memory, len(node.Memory))
+		for times, mem := range node.Memory {
+			i, _ := strconv.Atoi(times)
+			list[i] = mem
+		}
+		for index, mem := range list {
+			if index != 0 && mem.Value < node.Memory[strconv.Itoa(index-1)].Value {
+				isHigh = false
+			}
+			if index == len(node.Memory)-1 {
+				sub := mem.Value - node.Memory["0"].Value
+				if sub <= 0 {
+					continue
+				}
+				corev1Node := c.nodes[nodeName]
+				warningValueMi := warningValueB / 100 * float64(corev1Node.Status.Allocatable.Memory().Value())
+				leftTime := (warningValueMi - mem.Value) / (sub / float64(rangetmp))
+				leftTimeStr := fmt.Sprintf("%.1f", leftTime)
+				if leftTime <= 0 {
+					leftTimeStr = "0"
+				}
+				if isHigh && (leftTime < 0 || leftTime < float64(c.warningSetting.Sustained.Memory.LeftTime)) {
+					msg := log.Messages("", "", log.TagId, log.AgentId, nodeName+"主机"+rangeStr+"秒内内存持续增长，将在"+leftTimeStr+"秒后超过"+warningValueStr+"%内存总量")
+					sendMessageToWechat(msg)
+					actual, _ := strconv.ParseFloat(fmt.Sprintf("%.2f", mem.Value), 64)
+					warning := &log.Warning{
+						nodeName,
+						"内存快速增长",
+						rangeStr + "秒内内存持续增长，" + leftTimeStr + "秒后超过" + warningValueStr + "%内存总量",
 						warningValue,
 						actual,
 						time.Now(),
@@ -394,6 +452,7 @@ func getOldNodes(syncMap *sync.Map, name string) log.Node {
 		nodeOld = log.Node{
 			Name:      name,
 			Cpu:       make(map[string]log.Cpu),
+			Memory:    make(map[string]log.Memory),
 			CpuSumMin: math.MaxFloat64,
 			MemMin:    math.MaxFloat64,
 		}
@@ -494,17 +553,38 @@ func (c *Controller) updateLogStatus(l *logv1alpha1.Log) error {
 		c.recorder.Event(l, corev1.EventTypeWarning, ErrResourceExists, MessageResourceNoPort)
 		return fmt.Errorf("field spce.prometheus.port not define")
 	}
-	if warning.Sustained.Step == 0 {
-		warning.Sustained.Step = WarningSustainedStepDefault
+	if warning.Sustained.Cpu.Step == 0 {
+		c.recorder.Event(l, corev1.EventTypeWarning, ErrResourceExists, MessageUseDefaultWarningSustainedCpuStep)
+		warning.Sustained.Cpu.Step = WarningSustainedStepDefault
 	}
-	if warning.Sustained.Range == 0 {
-		warning.Sustained.Range = WarningSustainedRangeDefault
+	if warning.Sustained.Cpu.Range == 0 {
+		c.recorder.Event(l, corev1.EventTypeWarning, ErrResourceExists, MessageUseDefaultWarningSustainedCpuRange)
+		warning.Sustained.Cpu.Range = WarningSustainedRangeDefault
 	}
-	if warning.Sustained.WarningValue == 0 {
-		warning.Sustained.WarningValue = WarningSustainedWarningValueDefault
+	if warning.Sustained.Cpu.WarningValue == 0 {
+		c.recorder.Event(l, corev1.EventTypeWarning, ErrResourceExists, MessageUseDefaultWarningSustainedCpuWarningValue)
+		warning.Sustained.Cpu.WarningValue = WarningSustainedWarningValueDefault
 	}
-	if warning.Sustained.LeftTime == 0 {
-		warning.Sustained.LeftTime = WarningSustainedWarningValueDefault
+	if warning.Sustained.Cpu.LeftTime == 0 {
+		c.recorder.Event(l, corev1.EventTypeWarning, ErrResourceExists, MessageUseDefaultWarningSustainedCpuLeftTime)
+		warning.Sustained.Cpu.LeftTime = WarningSustainedWarningValueDefault
+	}
+
+	if warning.Sustained.Memory.Step == 0 {
+		c.recorder.Event(l, corev1.EventTypeWarning, ErrResourceExists, MessageUseDefaultWarningSustainedMemoryStep)
+		warning.Sustained.Memory.Step = WarningSustainedStepDefault
+	}
+	if warning.Sustained.Memory.Range == 0 {
+		c.recorder.Event(l, corev1.EventTypeWarning, ErrResourceExists, MessageUseDefaultWarningSustainedMemoryRange)
+		warning.Sustained.Memory.Range = WarningSustainedRangeDefault
+	}
+	if warning.Sustained.Memory.WarningValue == 0 {
+		c.recorder.Event(l, corev1.EventTypeWarning, ErrResourceExists, MessageUseDefaultWarningSustainedMemoryWarningValue)
+		warning.Sustained.Memory.WarningValue = WarningSustainedWarningValueDefault
+	}
+	if warning.Sustained.Memory.LeftTime == 0 {
+		c.recorder.Event(l, corev1.EventTypeWarning, ErrResourceExists, MessageUseDefaultWarningSustainedMemoryLeftTime)
+		warning.Sustained.Memory.LeftTime = WarningSustainedWarningValueDefault
 	}
 	c.prometheusClient.Name = name
 	c.prometheusClient.Host = host
