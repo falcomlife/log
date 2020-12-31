@@ -47,12 +47,18 @@ type Prometheus struct {
 }
 
 type Warning struct {
-	Sustained Sustained `json:"sustained"`
+	Sustained          Sustained          `json:"sustained"`
+	ExtremePointMedian ExtremePointMedian `json:"extremePointMedian"`
 }
 
 type Sustained struct {
 	Cpu    Cpu    `json:"cpu"`
 	Memory Memory `json:"memory"`
+}
+
+type ExtremePointMedian struct {
+	Cpu    Ecpu    `json:"cpu"`
+	Memory Ememory `json:"memory"`
 }
 
 type Cpu struct {
@@ -67,6 +73,14 @@ type Memory struct {
 	Range        int64 `json:"range"`
 	WarningValue int64 `json:"warningValue"`
 	LeftTime     int   `json:"leftTime"`
+}
+
+type Ecpu struct {
+	WarningValue int64 `json:"warningValue"`
+}
+
+type Ememory struct {
+	WarningValue int64 `json:"warningValue"`
 }
 
 // LogStatus is the status for a Log resource

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/robfig/cron/v3"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
 	"k8s.io/log-controller/common"
 	"k8s.io/log-controller/log"
@@ -37,6 +38,25 @@ func (c *Controller) runCronTask(nodes *sync.Map, pods map[string]*log.Pod) {
 	select {}
 }
 
+func event(c *Controller) {
+	obj, shutdown := c.workqueue.Get()
+	if shutdown {
+		return
+	}
+	if key, ok := obj.(string); !ok {
+		return
+	} else {
+		namespace, name, err := cache.SplitMetaNamespaceKey(key)
+		log, err := c.logsLister.Logs(namespace).Get(name)
+		if err != nil {
+			klog.Error(err)
+			return
+		}
+		c.recorder.Event(log, corev1.EventTypeNormal, SuccessSended, MessageResourceSended)
+	}
+	defer c.workqueue.Done(obj)
+}
+
 func (c *Controller) runWarningCronTask() {
 	crontab := cron.New(cron.WithSeconds())
 	task := func() {
@@ -49,7 +69,7 @@ func (c *Controller) runWarningCronTask() {
 				if nameNode == nameSample {
 					cpuExtremePointMedian := nodeSample.ExtremePointMedian * 100
 					cpuValue, _ := strconv.ParseFloat(fmt.Sprintf("%.2f", cpuExtremePointMedian), 64)
-					if node.CpuLaster > cpuValue && node.CpuLaster > float64(c.warningSetting.Sustained.Cpu.WarningValue) {
+					if node.CpuLaster > cpuValue && node.CpuLaster > float64(c.warningSetting.ExtremePointMedian.Cpu.WarningValue) {
 						cl := strconv.FormatFloat(node.CpuLaster, 'f', -1, 64)
 						cv := strconv.FormatFloat(cpuValue, 'f', -1, 64)
 						warning := &log.Warning{
@@ -62,26 +82,30 @@ func (c *Controller) runWarningCronTask() {
 						}
 						msg := log.Messages("", "", log.TagId, log.AgentId, nameNode+"，过去一天cpu使用峰值中值为"+cv+"%,当前使用量为"+cl+"%")
 						sendMessageToWechat(msg)
-						c.addMessage(nameNode, warning)
+						c.addWarningMessage(nameNode, warning)
 					}
 				}
 			}
 			for nameSample, nodeSample := range c.NodeMemoryAnalysis {
 				if nameNode == nameSample {
-					if node.MemLaster > nodeSample.ExtremePointMedian && node.MemLaster > float64(c.warningSetting.Sustained.Memory.WarningValue)  {
-						cl := strconv.FormatFloat(node.CpuLaster, 'f', -1, 64)
-						cv := strconv.FormatFloat(cpuValue, 'f', -1, 64)
+					extremePointMedian := nodeSample.ExtremePointMedian / math.Pow(2, 30)
+					allocatable := c.nodes[nameNode].Status.Allocatable
+					memoryAllocatable := float64(allocatable.Memory().Value()) / math.Pow(2, 30)
+					memoryWarningValue := (float64(c.warningSetting.ExtremePointMedian.Memory.WarningValue) / 100) * float64(memoryAllocatable)
+					if node.MemLaster > extremePointMedian && node.MemLaster > memoryWarningValue {
+						cl := strconv.FormatFloat(node.MemLaster, 'f', -1, 64)
+						cv := fmt.Sprintf("%.2f", extremePointMedian)
 						warning := &log.Warning{
 							nameNode,
 							"Cpu峰值",
 							"Cpu占用达到近期高点",
-							cpuValue,
+							extremePointMedian,
 							node.CpuLaster,
 							time.Now(),
 						}
-						msg := log.Messages("", "", log.TagId, log.AgentId, nameNode+"，过去一天cpu使用峰值中值为"+cv+"%,当前使用量为"+cl+"%")
+						msg := log.Messages("", "", log.TagId, log.AgentId, nameNode+"，过去一天内存使用峰值中值为"+cv+"Gi,当前使用量为"+cl+"Gi")
 						sendMessageToWechat(msg)
-						c.addMessage(nameNode, warning)
+						c.addWarningMessage(nameNode, warning)
 					}
 				}
 			}
@@ -162,5 +186,36 @@ func batchPods(pods map[string]*log.Pod) {
 		mem, _ := strconv.ParseFloat(fmt.Sprintf("%.2f", value.MemMax-value.MemMin), 64)
 		value.MemVolatility = mem
 		pods[key] = value
+	}
+}
+
+// Add a new message to warning list
+func (c *Controller) addWarningMessage(nameNode string, warning *log.Warning) {
+	exsit := false
+	warngingtemp := make([]*log.WarningList, len(c.Warnings))
+	copy(warngingtemp, c.Warnings)
+	for i, nodeWarnings := range warngingtemp {
+		if nodeWarnings.Name == nameNode {
+			c.Warnings[i].Children = append(c.Warnings[i].Children, warning)
+			exsit = true
+		}
+	}
+	if !exsit {
+		warninglist := log.WarningList{
+			Name:     nameNode,
+			Children: make([]*log.Warning, 0),
+		}
+		warninglist.Children = append(warninglist.Children, warning)
+		c.Warnings = append(c.Warnings, &warninglist)
+	}
+}
+
+// Send message to wechat
+func sendMessageToWechat(msg string) {
+	accessToken := log.GetAccessToken(log.CorpId, log.Secret)
+	if os.Getenv("LOG.ENV") == "PROD" {
+		log.SendMessage(accessToken, msg)
+	} else {
+		fmt.Println(accessToken, msg)
 	}
 }

@@ -25,4 +25,9 @@ spec:
         range: 120
         warningValue: 70
         leftTime: 60
+    extremePointMedian:
+      cpu:
+        warningValue: 80
+      memory:
+        warningValue: 80
 
