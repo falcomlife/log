@@ -47,7 +47,7 @@ func (c *Controller) Run(threadiness int, stopCh <-chan struct{}) error {
 	go initAnalysis(c)
 	go c.runCronTask(c.PrometheusMetricQueue, c.PrometheusPodMetricQueue)
 	go c.runWarningCronTask()
-	//go c.runCleanCronTask()
+	go c.runCleanCronTask()
 	klog.Info("Started workers")
 	<-stopCh
 	klog.Info("Shutting down workers")

@@ -49,7 +49,26 @@ func (c *Controller) runWarningCronTask() {
 				if nameNode == nameSample {
 					cpuExtremePointMedian := nodeSample.ExtremePointMedian * 100
 					cpuValue, _ := strconv.ParseFloat(fmt.Sprintf("%.2f", cpuExtremePointMedian), 64)
-					if node.CpuLaster > cpuValue && node.CpuLaster > 60 {
+					if node.CpuLaster > cpuValue && node.CpuLaster > float64(c.warningSetting.Sustained.Cpu.WarningValue) {
+						cl := strconv.FormatFloat(node.CpuLaster, 'f', -1, 64)
+						cv := strconv.FormatFloat(cpuValue, 'f', -1, 64)
+						warning := &log.Warning{
+							nameNode,
+							"Cpu峰值",
+							"Cpu占用达到近期高点",
+							cpuValue,
+							node.CpuLaster,
+							time.Now(),
+						}
+						msg := log.Messages("", "", log.TagId, log.AgentId, nameNode+"，过去一天cpu使用峰值中值为"+cv+"%,当前使用量为"+cl+"%")
+						sendMessageToWechat(msg)
+						c.addMessage(nameNode, warning)
+					}
+				}
+			}
+			for nameSample, nodeSample := range c.NodeMemoryAnalysis {
+				if nameNode == nameSample {
+					if node.MemLaster > nodeSample.ExtremePointMedian && node.MemLaster > float64(c.warningSetting.Sustained.Memory.WarningValue)  {
 						cl := strconv.FormatFloat(node.CpuLaster, 'f', -1, 64)
 						cv := strconv.FormatFloat(cpuValue, 'f', -1, 64)
 						warning := &log.Warning{
@@ -75,17 +94,17 @@ func (c *Controller) runWarningCronTask() {
 	select {}
 }
 
-//func (c *Controller) runCleanCronTask() {
-//	crontab := cron.New(cron.WithSeconds())
-//	task := func() {
-//		c.PrometheusMetricQueue = &sync.Map{}
-//		c.Warnings = make([]*log.WarningList, 0)
-//	}
-//	crontab.AddFunc("0 0 23 * * ?", task)
-//	crontab.Start()
-//	defer crontab.Stop()
-//	select {}
-//}
+func (c *Controller) runCleanCronTask() {
+	crontab := cron.New(cron.WithSeconds())
+	task := func() {
+		c.PrometheusMetricQueue = &sync.Map{}
+		c.Warnings = make([]*log.WarningList, 0)
+	}
+	crontab.AddFunc("0 0 23 * * ?", task)
+	crontab.Start()
+	defer crontab.Stop()
+	select {}
+}
 
 func analysis(c *Controller) error {
 	cpu, err := log.AnalysisCpu(c.prometheusClient.Protocol, c.prometheusClient.Host, c.prometheusClient.Port)
