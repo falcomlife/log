@@ -7,6 +7,7 @@ import (
 	"gonum.org/v1/plot/vg"
 )
 
+// for test
 func Draw(nodeSample map[string]*NodeSample) {
 	for name, node := range nodeSample {
 		p, _ := plot.New()

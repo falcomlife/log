@@ -5,6 +5,7 @@ import (
 	"errors"
 )
 
+// Deprecated
 func DeepCopyJSON(src map[string]interface{}, dest map[string]interface{}) error {
 	if src == nil {
 		return errors.New("src is nil. You cannot read from a nil map")

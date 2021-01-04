@@ -1,3 +1,7 @@
+/*
+	The functions in this file mainly used to get the data from prometheus,
+	and transform the data structure, at the same time, get monotone interval.
+*/
 package log
 
 import (

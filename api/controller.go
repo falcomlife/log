@@ -1,3 +1,6 @@
+/*
+	beego api controller
+*/
 package api
 
 import (
