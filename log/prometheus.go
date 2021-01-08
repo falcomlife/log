@@ -164,48 +164,81 @@ func emetricMapToPod(m map[string]interface{}, path string) (map[string]Pod, err
 			continue
 		}
 		value, ok := rr["value"].([]interface{})
+		var values []interface{} = nil
 		if !ok {
-			klog.Warning("get value fail")
-			continue
+			values, ok = rr["values"].([]interface{})
+			if !ok {
+				klog.Warning("get value and values fail")
+				continue
+			}
+
 		}
 		if len(metric) == 0 {
 			continue
 		}
+		if metric["pod"] == nil || metric["namespace"] == nil || metric["node"] == nil {
+			continue
+		}
 		instance := metric["pod"].(string)
 		ns := metric["namespace"].(string)
-		var inst Pod
-		if _, ok := rm[instance]; ok {
-			// instance exist in map
-			inst = (rm[instance])
-		} else {
-			// instance not exist in map
-			inst = Pod{
-				Name:      instance,
-				Namespace: ns,
+		node := metric["node"].(string)
+		inst := Pod{
+			Name:      instance,
+			Namespace: ns,
+			Node:      node,
+		}
+		if value != nil {
+			v, ok := (value[1]).(string)
+			if !ok {
+				klog.Warning("value[1] not a string")
+				continue
+			}
+			valueFloat, err := strconv.ParseFloat(v, 64)
+			if err != nil {
+				klog.Warning(err)
+				continue
+			}
+			inst.CpuSumMax = valueFloat
+			inst.CpuSumMaxTime = time.Now()
+			inst.CpuSumMin = valueFloat
+			inst.CpuSumMinTime = time.Now()
+			inst.CpuSumAvg = valueFloat
+			rm[inst.Name] = inst
+			inst.MemMax = valueFloat
+			inst.MemMaxTime = time.Now()
+			inst.MemMin = valueFloat
+			inst.MemMinTime = time.Now()
+			inst.MemAvg = valueFloat
+		} else if values != nil {
+			if strings.HasPrefix(path, PodCpuUsedSample) {
+				valueStart, ok := values[0].([]interface{})
+				valueStartStr, ok := valueStart[1].(string)
+				valueStartFloat, _ := strconv.ParseFloat(valueStartStr, 64)
+				valueEnd, ok := values[len(values)-1].([]interface{})
+				valueEndStr, ok := valueEnd[1].(string)
+				valueEndFloat, _ := strconv.ParseFloat(valueEndStr, 64)
+				if !ok {
+					klog.Warning("value is not a float64 arr")
+					continue
+				}
+				inst.CpuLaster = valueEndFloat
+				inst.CpuVolatility = valueEndFloat - valueStartFloat
+			} else if strings.HasPrefix(path, PodMemoryUsedSample) {
+				valueStart, ok := values[0].([]interface{})
+				valueStartStr, ok := valueStart[1].(string)
+				valueStartFloat, _ := strconv.ParseFloat(valueStartStr, 64)
+				valueEnd, ok := values[len(values)-1].([]interface{})
+				valueEndStr, ok := valueEnd[1].(string)
+				valueEndFloat, _ := strconv.ParseFloat(valueEndStr, 64)
+				if !ok {
+					klog.Warning("value is not a float64 arr")
+					continue
+				}
+				inst.MemLaster = valueEndFloat
+				inst.MemVolatility = valueEndFloat - valueStartFloat
 			}
 		}
-		v, ok := (value[1]).(string)
-		if !ok {
-			klog.Warning("value[1] not a string")
-			continue
-		}
-		valueFloat, err := strconv.ParseFloat(v, 64)
-		if err != nil {
-			klog.Warning(err)
-			continue
-		}
-		inst.CpuSumMax = valueFloat
-		inst.CpuSumMaxTime = time.Now()
-		inst.CpuSumMin = valueFloat
-		inst.CpuSumMinTime = time.Now()
-		inst.CpuSumAvg = valueFloat
-		rm[inst.Name] = inst
-		inst.MemMax = valueFloat
-		inst.MemMaxTime = time.Now()
-		inst.MemMin = valueFloat
-		inst.MemMinTime = time.Now()
-		inst.MemAvg = valueFloat
-		rm[inst.Name] = inst
+		rm[ns+"/"+instance] = inst
 	}
 	return rm, nil
 }

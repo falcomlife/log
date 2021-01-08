@@ -5,26 +5,26 @@ metadata:
 spec:
   prometheus:
     name: log
+#    protocol: http
+#    host: prometheus-k8s.monitoring
+#    port: "9090"
+#    period: 10
     protocol: http
-    host: prometheus-k8s.monitoring
-    port: "9090"
+    host: 172.16.77.155
+    port: "39090"
     period: 10
-  #    protocol: http
-  #    host: 172.16.77.155
-  #    port: "39090"
-  #    period: 10
   warning:
     sustained:
       cpu:
         step: 15
         range: 120
-        warningValue: 90
-        leftTime: 60
+        warningValue: 10
+        leftTime: 900000
       memory:
         step: 15
         range: 120
-        warningValue: 70
-        leftTime: 60
+        warningValue: 20
+        leftTime: 900000
     extremePointMedian:
       cpu:
         warningValue: 80

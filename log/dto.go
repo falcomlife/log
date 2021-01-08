@@ -34,6 +34,7 @@ type Node struct {
 type Pod struct {
 	Name          string      `json:"name"`
 	Namespace     string      `json:"namespace"`
+	Node          string      `json:"node"`
 	CpuSumMax     float64     `json:"cpuSumMax"`
 	CpuSumMaxTime time.Time   `json:"cpuSumMaxTime"`
 	CpuSumMin     float64     `json:"cpuSumMin"`
@@ -66,4 +67,13 @@ type Warning struct {
 	WarningValue float64   `json:"warningValue"` // 警戒值
 	Actual       float64   `json:"actual"`       // 实际值
 	Time         time.Time `json:"time"`         // 时间
+	Suspect      []Suspect `json:"suspect"`      // 造成问题的嫌疑人(pod)
+}
+
+type Suspect struct {
+	Type        string  `json:"type"`
+	Name        string  `json:"name"`
+	Namespace   string  `json:"namespace"`
+	ActualValue float64 `json:"actualValue"`
+	Volatility  float64 `json:"volatility"`
 }

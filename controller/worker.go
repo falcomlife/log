@@ -6,6 +6,7 @@ import (
 	"k8s.io/log-controller/common"
 	"k8s.io/log-controller/log"
 	"math"
+	"sort"
 	"strconv"
 	"sync"
 	"time"
@@ -50,14 +51,14 @@ func (c *Controller) runPrometheusWorker() {
 				if err != nil {
 					continue
 				}
-				c.batchForNodeCpuSample(nodes5)
+				c.batchForNodeCpuSample(nodes5, now, period, stepStr)
 				now, period = common.GetRangeTime(c.warningSetting.Sustained.Memory.Range)
 				stepStr = strconv.FormatInt(c.warningSetting.Sustained.Memory.Step, 10)
 				nodes6, err := c.prometheusClient.GetNode(log.NodeMemUsedSample + "&start=" + period + "&end=" + now + "&step=" + stepStr)
 				if err != nil {
 					continue
 				}
-				c.batchForNodeMemSample(nodes6)
+				c.batchForNodeMemSample(nodes6, now, period, stepStr)
 				pod1, err := c.prometheusClient.GetPod(log.PodCpuUsed)
 				if err != nil {
 					continue
@@ -165,7 +166,6 @@ func (c *Controller) batchForMem(nodes map[string]log.Node) {
 			nodeOld.MemMaxRatio = memratio
 		}
 		nodeOld.MemLaster = memValue
-
 		memAvgtemp := (nodeOld.MemAvg*float64(c.prometheusClient.SamplingTimes) + memUsedNew) / float64(c.prometheusClient.SamplingTimes+1)
 		memAvg, err := strconv.ParseFloat(fmt.Sprintf("%.2f", memAvgtemp), 64)
 		if err != nil {
@@ -199,7 +199,7 @@ func (c *Controller) batchForDisk(nodes3 map[string]log.Node, nodes4 map[string]
 	}
 }
 
-func (c *Controller) batchForNodeCpuSample(nodes5 map[string]log.Node) {
+func (c *Controller) batchForNodeCpuSample(nodes5 map[string]log.Node, now, period, stepStr string) {
 	warningValue := float64(c.warningSetting.Sustained.Cpu.WarningValue)
 	warningValueStr := strconv.FormatFloat(warningValue, 'f', -1, 64)
 	rangetmp := c.warningSetting.Sustained.Cpu.Range
@@ -225,26 +225,32 @@ func (c *Controller) batchForNodeCpuSample(nodes5 map[string]log.Node) {
 				if leftTime <= 0 {
 					leftTimeStr = "0"
 				}
+				//if leftTime < float64(c.warningSetting.Sustained.Cpu.LeftTime) {
+				//	fmt.Print(isHigh)
 				if isHigh && leftTime < float64(c.warningSetting.Sustained.Cpu.LeftTime) {
-					msg := log.Messages("", "", log.TagId, log.AgentId, nodeName+"主机"+rangeStr+"秒内cpu持续增长，将在"+leftTimeStr+"秒后超过"+warningValueStr+"%cpu使用时间")
-					sendMessageToWechat(msg)
 					actual, _ := strconv.ParseFloat(fmt.Sprintf("%.2f", cpu.Value), 64)
-					warning := &log.Warning{
-						nodeName,
-						"Cpu快速增长",
-						rangeStr + "秒内cpu持续增长，" + leftTimeStr + "秒后超过" + warningValueStr + "%cpu使用时间",
-						warningValue,
-						actual,
-						time.Now(),
+					pods, err := c.prometheusClient.GetPod(log.PodCpuUsedSample + "&start=" + period + "&end=" + now + "&step=" + stepStr)
+					if err != nil {
+						klog.Error(err)
+						continue
 					}
-					c.addWarningMessage(nodeName, warning)
+					podsSlice := make([]log.Pod, 0)
+					for _, pod := range pods {
+						if pod.Node == nodeName {
+							podsSlice = append(podsSlice, pod)
+						}
+					}
+					sort.SliceStable(podsSlice, func(i, j int) bool {
+						return podsSlice[i].CpuVolatility > podsSlice[j].CpuVolatility
+					})
+					c.warning(nodeName, "Cpu快速增长", rangeStr+"秒内cpu持续增长，"+leftTimeStr+"秒后超过"+warningValueStr+"%cpu使用时间", podsSlice[0:3], warningValue, actual, time.Now(), nodeName+"主机"+rangeStr+"秒内cpu持续增长，将在"+leftTimeStr+"秒后超过"+warningValueStr+"%cpu使用时间")
 				}
 			}
 		}
 	}
 }
 
-func (c *Controller) batchForNodeMemSample(nodes6 map[string]log.Node) {
+func (c *Controller) batchForNodeMemSample(nodes6 map[string]log.Node, now, period, stepStr string) {
 	warningValue := float64(c.warningSetting.Sustained.Memory.WarningValue)
 	warningValueStr := strconv.FormatFloat(warningValue, 'f', -1, 64)
 	warningValueB := warningValue
@@ -273,19 +279,25 @@ func (c *Controller) batchForNodeMemSample(nodes6 map[string]log.Node) {
 				if leftTime <= 0 {
 					leftTimeStr = "0"
 				}
+				//if leftTime < float64(c.warningSetting.Sustained.Memory.LeftTime) {
+				//	fmt.Print(isHigh)
 				if isHigh && (leftTime < 0 || leftTime < float64(c.warningSetting.Sustained.Memory.LeftTime)) {
-					msg := log.Messages("", "", log.TagId, log.AgentId, nodeName+"主机"+rangeStr+"秒内内存持续增长，将在"+leftTimeStr+"秒后超过"+warningValueStr+"%内存总量")
-					sendMessageToWechat(msg)
 					actual, _ := strconv.ParseFloat(fmt.Sprintf("%.2f", mem.Value), 64)
-					warning := &log.Warning{
-						nodeName,
-						"内存快速增长",
-						rangeStr + "秒内内存持续增长，" + leftTimeStr + "秒后超过" + warningValueStr + "%内存总量",
-						warningValue,
-						actual,
-						time.Now(),
+					pods, err := c.prometheusClient.GetPod(log.PodMemoryUsedSample + "&start=" + period + "&end=" + now + "&step=" + stepStr)
+					if err != nil {
+						klog.Error(err)
+						continue
 					}
-					c.addWarningMessage(nodeName, warning)
+					podsSlice := make([]log.Pod, 0)
+					for _, pod := range pods {
+						if pod.Node == nodeName {
+							podsSlice = append(podsSlice, pod)
+						}
+					}
+					sort.SliceStable(podsSlice, func(i, j int) bool {
+						return podsSlice[i].MemVolatility > podsSlice[j].MemVolatility
+					})
+					c.warning(nodeName, "内存快速增长", rangeStr+"秒内内存持续增长，"+leftTimeStr+"秒后超过"+warningValueStr+"%内存总量", podsSlice[0:3], warningValue, actual, time.Now(), nodeName+"主机"+rangeStr+"秒内内存持续增长，将在"+leftTimeStr+"秒后超过"+warningValueStr+"%内存总量")
 				}
 			}
 		}
@@ -297,9 +309,9 @@ func (c *Controller) batchForPodCpu(pods map[string]log.Pod) {
 	mutex.Lock()
 	for _, pod := range pods {
 		var podOld *log.Pod
-		if _, ok := c.PrometheusPodMetricQueue[pod.Name]; ok {
+		if _, ok := c.PrometheusPodMetricQueue[pod.Namespace+"/"+pod.Name]; ok {
 			// there is node in map
-			podOld = c.PrometheusPodMetricQueue[pod.Name]
+			podOld = c.PrometheusPodMetricQueue[pod.Namespace+"/"+pod.Name]
 		} else {
 			// there is not node in map
 			podOld = &log.Pod{
@@ -334,7 +346,7 @@ func (c *Controller) batchForPodCpu(pods map[string]log.Pod) {
 			klog.Warning(err)
 		}
 		podOld.CpuSumAvg = cpuAvg
-		c.PrometheusPodMetricQueue[pod.Name] = podOld
+		c.PrometheusPodMetricQueue[pod.Namespace+"/"+pod.Name] = podOld
 	}
 }
 
@@ -343,9 +355,9 @@ func (c *Controller) batchForPodMem(pods map[string]log.Pod) {
 	mutex.Lock()
 	for _, pod := range pods {
 		var podOld *log.Pod
-		if _, ok := c.PrometheusPodMetricQueue[pod.Name]; ok {
+		if _, ok := c.PrometheusPodMetricQueue[pod.Namespace+"/"+pod.Name]; ok {
 			// there is pod in map
-			podOld = c.PrometheusPodMetricQueue[pod.Name]
+			podOld = c.PrometheusPodMetricQueue[pod.Namespace+"/"+pod.Name]
 		} else {
 			// there is not pod in map
 			podOld = &log.Pod{
@@ -385,7 +397,7 @@ func (c *Controller) batchForPodMem(pods map[string]log.Pod) {
 			klog.Warning(err)
 		}
 		podOld.MemAvg = memAvg
-		c.PrometheusPodMetricQueue[pod.Name] = podOld
+		c.PrometheusPodMetricQueue[pod.Namespace+"/"+pod.Name] = podOld
 	}
 }
 

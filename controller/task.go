@@ -136,17 +136,7 @@ func (c *Controller) runWarningCronTask() {
 					if node.CpuLaster > cpuValue && node.CpuLaster > float64(c.warningSetting.ExtremePointMedian.Cpu.WarningValue) {
 						cl := strconv.FormatFloat(node.CpuLaster, 'f', -1, 64)
 						cv := strconv.FormatFloat(cpuValue, 'f', -1, 64)
-						warning := &log.Warning{
-							nameNode,
-							"Cpu峰值",
-							"Cpu占用达到近期高点",
-							cpuValue,
-							node.CpuLaster,
-							time.Now(),
-						}
-						msg := log.Messages("", "", log.TagId, log.AgentId, nameNode+"，过去一天cpu使用峰值中值为"+cv+"%,当前使用量为"+cl+"%")
-						sendMessageToWechat(msg)
-						c.addWarningMessage(nameNode, warning)
+						c.warning(nameNode, "Cpu峰值", "Cpu占用达到近期高点", make([]log.Pod, 0), cpuValue, node.CpuLaster, time.Now(), nameNode+"，过去一天cpu使用峰值中值为"+cv+"%,当前使用量为"+cl+"%")
 					}
 				}
 			}
@@ -159,17 +149,7 @@ func (c *Controller) runWarningCronTask() {
 					if node.MemLaster > extremePointMedian && node.MemLaster > memoryWarningValue {
 						cl := strconv.FormatFloat(node.MemLaster, 'f', -1, 64)
 						cv := fmt.Sprintf("%.2f", extremePointMedian)
-						warning := &log.Warning{
-							nameNode,
-							"Cpu峰值",
-							"Cpu占用达到近期高点",
-							extremePointMedian,
-							node.CpuLaster,
-							time.Now(),
-						}
-						msg := log.Messages("", "", log.TagId, log.AgentId, nameNode+"，过去一天内存使用峰值中值为"+cv+"Gi,当前使用量为"+cl+"Gi")
-						sendMessageToWechat(msg)
-						c.addWarningMessage(nameNode, warning)
+						c.warning(nameNode, "Cpu峰值", "Cpu占用达到近期高点", make([]log.Pod, 0), extremePointMedian, node.CpuLaster, time.Now(), nameNode+"，过去一天内存使用峰值中值为"+cv+"Gi,当前使用量为"+cl+"Gi")
 					}
 				}
 			}
@@ -193,27 +173,6 @@ func (c *Controller) runCleanCronTask() {
 	crontab.Start()
 	defer crontab.Stop()
 	select {}
-}
-
-// Add a new message to warning list
-func (c *Controller) addWarningMessage(nameNode string, warning *log.Warning) {
-	exsit := false
-	warngingtemp := make([]*log.WarningList, len(c.Warnings))
-	copy(warngingtemp, c.Warnings)
-	for i, nodeWarnings := range warngingtemp {
-		if nodeWarnings.Name == nameNode {
-			c.Warnings[i].Children = append(c.Warnings[i].Children, warning)
-			exsit = true
-		}
-	}
-	if !exsit {
-		warninglist := log.WarningList{
-			Name:     nameNode,
-			Children: make([]*log.Warning, 0),
-		}
-		warninglist.Children = append(warninglist.Children, warning)
-		c.Warnings = append(c.Warnings, &warninglist)
-	}
 }
 
 // Send message to wechat
