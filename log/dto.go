@@ -27,6 +27,7 @@ type Node struct {
 	DiskUsed      float64           `json:"diskUsed"`
 	DiskUsedRatio float64           `json:"diskUsedRatio"`
 	DiskTotal     float64           `json:"diskTotal"`
+	DiskLeftTime  float64           `json:"diskLeftTime"`
 	Amplitude     float64           `json:"amplitude"`
 	Allocatable   Allocatable       `json:"allocatable"`
 }

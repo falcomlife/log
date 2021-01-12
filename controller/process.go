@@ -168,7 +168,7 @@ func (c *Controller) updateLogStatus(l *logv1alpha1.Log) error {
 	}
 	if warning.Sustained.Cpu.LeftTime == 0 {
 		c.recorder.Event(l, corev1.EventTypeWarning, ErrResourceExists, MessageUseDefaultWarningSustainedCpuLeftTime)
-		warning.Sustained.Cpu.LeftTime = WarningSustainedWarningValueDefault
+		warning.Sustained.Cpu.LeftTime = WarningSustainedLeftTimeDefault
 	}
 
 	if warning.Sustained.Memory.Step == 0 {
@@ -185,7 +185,16 @@ func (c *Controller) updateLogStatus(l *logv1alpha1.Log) error {
 	}
 	if warning.Sustained.Memory.LeftTime == 0 {
 		c.recorder.Event(l, corev1.EventTypeWarning, ErrResourceExists, MessageUseDefaultWarningSustainedMemoryLeftTime)
-		warning.Sustained.Memory.LeftTime = WarningSustainedWarningValueDefault
+		warning.Sustained.Memory.LeftTime = WarningSustainedLeftTimeDefault
+	}
+
+	if warning.Sustained.Disk.Range == 0 {
+		c.recorder.Event(l, corev1.EventTypeWarning, ErrResourceExists, MessageUseDefaultWarningSustainedDiskRange)
+		warning.Sustained.Disk.Range = WarningSustainedRangeDefault
+	}
+	if warning.Sustained.Disk.LeftTime == 0 {
+		c.recorder.Event(l, corev1.EventTypeWarning, ErrResourceExists, MessageUseDefaultWarningSustainedDiskLeftTime)
+		warning.Sustained.Disk.LeftTime = WarningSustainedLeftTimeDefault
 	}
 	c.prometheusClient.Name = name
 	c.prometheusClient.Host = host

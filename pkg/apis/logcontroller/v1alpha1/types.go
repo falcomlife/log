@@ -54,6 +54,7 @@ type Warning struct {
 type Sustained struct {
 	Cpu    Cpu    `json:"cpu"`
 	Memory Memory `json:"memory"`
+	Disk   Disk   `json:"disk"`
 }
 
 type ExtremePointMedian struct {
@@ -73,6 +74,11 @@ type Memory struct {
 	Range        int64 `json:"range"`
 	WarningValue int64 `json:"warningValue"`
 	LeftTime     int   `json:"leftTime"`
+}
+
+type Disk struct {
+	Range    int64 `json:"range"`
+	LeftTime int   `json:"leftTime"`
 }
 
 type Ecpu struct {

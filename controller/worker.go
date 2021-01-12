@@ -8,6 +8,7 @@ import (
 	"math"
 	"sort"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 )
@@ -59,6 +60,12 @@ func (c *Controller) runPrometheusWorker() {
 					continue
 				}
 				c.batchForNodeMemSample(nodes6, now, period, stepStr)
+				log.NodeDiskLeftTime = strings.ReplaceAll(log.NodeDiskLeftTime, "second", strconv.FormatInt(c.warningSetting.Sustained.Disk.Range, 10))
+				nodes7, err := c.prometheusClient.GetNode(log.NodeDiskLeftTime)
+				if err != nil {
+					continue
+				}
+				c.batchForNodeDiskLeftTime(nodes7)
 				pod1, err := c.prometheusClient.GetPod(log.PodCpuUsed)
 				if err != nil {
 					continue
@@ -300,6 +307,14 @@ func (c *Controller) batchForNodeMemSample(nodes6 map[string]log.Node, now, peri
 					c.warning(nodeName, "内存快速增长", rangeStr+"秒内内存持续增长，"+leftTimeStr+"秒后超过"+warningValueStr+"%内存总量", podsSlice[0:3], warningValue, actual, time.Now(), nodeName+"主机"+rangeStr+"秒内内存持续增长，将在"+leftTimeStr+"秒后超过"+warningValueStr+"%内存总量")
 				}
 			}
+		}
+	}
+}
+
+func (c *Controller) batchForNodeDiskLeftTime(nodes7 map[string]log.Node) {
+	for _, node := range nodes7 {
+		if float64(c.warningSetting.Sustained.Disk.LeftTime) > node.DiskLeftTime && node.DiskLeftTime > 0 {
+			c.warning(node.Name, "磁盘空间不足", "磁盘剩余容量将会在"+strconv.FormatFloat(node.DiskLeftTime, 'f', -1, 64)+"秒后用尽", make([]log.Pod, 0), 0, 0, time.Now(), "磁盘剩余容量将会在"+strconv.FormatFloat(node.DiskLeftTime, 'f', -1, 64)+"秒后用尽")
 		}
 	}
 }

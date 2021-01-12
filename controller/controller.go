@@ -77,6 +77,10 @@ const (
 	MessageUseDefaultWarningSustainedMemoryWarningValue = "warning.sustained.memory.warningValue not define,use default value 80"
 	// use default value
 	MessageUseDefaultWarningSustainedMemoryLeftTime = "warning.sustained.memory.leftTime not define,use default value 60"
+	// use default value
+	MessageUseDefaultWarningSustainedDiskRange = "warning.sustained.disk.range not define,use default value 90"
+	// use default value
+	MessageUseDefaultWarningSustainedDiskLeftTime = "warning.sustained.disk.leftTime not define,use default value 60"
 )
 
 const (

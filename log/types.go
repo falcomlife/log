@@ -18,14 +18,15 @@ const (
 	PodCpuUsed                  = "/api/v1/query?query=sum%20by%20(namespace%2Cpod%2Cnode)%20(irate(container_cpu_usage_seconds_total%7Bjob%3D%22kubelet%22%2C%20cluster%3D%22%22%2Cimage!%3D%22%22%2C%20container!%3D%22POD%22%7D%5B4m%5D))"
 	PodCpuUsedSample            = "/api/v1/query_range?query=sum%20by%20(namespace%2Cpod%2Cnode)%20(irate(container_cpu_usage_seconds_total%7Bjob=%22kubelet%22,%20cluster=%22%22,%20image!=%22%22,%20container!=%22POD%22,%20pod!=%22%22%7D%5B4m%5D))*100"
 	PodMemoryUsed               = "/api/v1/query?query=sum%20by(namespace%2Cpod%2Cnode)%20(container_memory_working_set_bytes%7bjob%3d%22kubelet%22%2c+cluster%3d%22%22%2c+container!%3d%22POD%22%2c+container!%3d%22%22%7d)"
-	PodMemoryUsedSample         = "/api/v1/query_range?query=sum%20by(namespace%2Cpod%2Cnode)%20(container_memory_working_set_bytes%7bjob%3d%22kubelet%22%2c+cluster%3d%22%22%2c+container!%3d%22POD%22%2c+container!%3d%22%22%7d)"
+	PodMemoryUsedSample         = "/api/v1/query_range?query=sum%20by(namespace%2Cpod%2Cnode)%20(container_memory_working_set_byt%des%7bjob%3d%22kubelet%22%2c+cluster%3d%22%22%2c+container!%3d%22POD%22%2c+container!%3d%22%22%7d)"
 	CorpId                      = "wx46e1733df6787273"
 	AgentId                     = 1000052
 	TagId                       = 1
 	Secret                      = "mPPjV5BKhe6xpU414WiUxcMpf4_8P_zj9qsxHk8XNWc"
-
-	Template = "./message.template"
+	Template                    = "./message.template"
 )
+
+var NodeDiskLeftTime = "/api/v1/query?query=(sum%20by(instance)(node_filesystem_avail_bytes%7Bjob=%22node-exporter%22,%20fstype!=%22%22,%20fstype!=%22tmpfs%22,%20fstype!=%22rootfs%22%7D))/((sum%20by(instance)(node_filesystem_avail_bytes%7Bjob=%22node-exporter%22,%20fstype!=%22%22,%20fstype!=%22tmpfs%22,%20fstype!=%22rootfs%22%7D%20offset%20seconds)%20-%20sum%20by(instance)(node_filesystem_avail_bytes%7Bjob=%22node-exporter%22,%20fstype!=%22%22,%20fstype!=%22tmpfs%22,%20fstype!=%22rootfs%22%7D))/second)"
 
 type Log struct {
 }
