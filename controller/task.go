@@ -166,10 +166,17 @@ func (c *Controller) runWarningCronTask() {
 func (c *Controller) runCleanCronTask() {
 	crontab := cron.New(cron.WithSeconds())
 	task := func() {
-		c.PrometheusMetricQueue = &sync.Map{}
+		c.PrometheusMetricQueue.Range(func(key interface{}, value interface{}) bool {
+			value = log.Node{}
+			return true
+		})
 		c.Warnings = make([]*log.WarningList, 0)
 	}
-	crontab.AddFunc("0 0 23 * * ?", task)
+	if os.Getenv("LOG.ENV") == "PROD" {
+		crontab.AddFunc("0 0 23 * * ?", task)
+	} else {
+		crontab.AddFunc("0 */10 * * * *", task)
+	}
 	crontab.Start()
 	defer crontab.Stop()
 	select {}
