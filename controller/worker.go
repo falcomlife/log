@@ -157,7 +157,7 @@ func (c *Controller) batchForMem(nodes map[string]log.Node) {
 			nodeOld.MemMax = memValue
 			nodeOld.MemMaxTime = time.Now()
 		}
-		if nodeOld.MemMin >= memUsedNew {
+		if nodeOld.MemMin >= memUsedNew || nodeOld.MemMin == 0 {
 			if err != nil {
 				klog.Warning(err)
 				continue

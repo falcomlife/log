@@ -166,8 +166,10 @@ func (c *Controller) runWarningCronTask() {
 func (c *Controller) runCleanCronTask() {
 	crontab := cron.New(cron.WithSeconds())
 	task := func() {
-		c.PrometheusMetricQueue.Range(func(key interface{}, value interface{}) bool {
-			value = log.Node{}
+		queueOrigin := *c.PrometheusMetricQueue
+		queue := &queueOrigin
+		queue.Range(func(key interface{}, value interface{}) bool {
+			c.PrometheusMetricQueue.Delete(key)
 			return true
 		})
 		c.Warnings = make([]*log.WarningList, 0)
