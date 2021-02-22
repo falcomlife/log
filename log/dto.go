@@ -33,8 +33,8 @@ type Node struct {
 }
 
 type Pod struct {
-	Name          string      `json:"name"`          //名称
-	Namespace     string      `json:"namespace"`     //命名空间
+	Name          string      `json:"name"`          // 名称
+	Namespace     string      `json:"namespace"`     // 命名空间
 	Node          string      `json:"node"`          // 节点名
 	CpuSumMax     float64     `json:"cpuSumMax"`     // cpu各个核心总和最大值
 	CpuSumMaxTime time.Time   `json:"cpuSumMaxTime"` // cpu各个核心总和最大值发生时间
@@ -77,4 +77,16 @@ type Suspect struct {
 	Namespace   string  `json:"namespace"`
 	ActualValue float64 `json:"actualValue"`
 	Volatility  float64 `json:"volatility"`
+}
+
+type Deployment struct {
+	Name        string `json:"name"`
+	NameSpace   string `json:"nameSpace"`
+	Kind        string `json:"kind"`
+	Description string `json:"description"`
+	GitUrl      string `json:"gitUrl"`
+	GatewatUrl  string `json:"gatewayUrl"`
+	InnerUrl    string `json:"innerUrl"`
+	Replicas    int32  `json:"replicas"`
+	Ready       int32  `json:"ready"`
 }

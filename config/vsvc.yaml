@@ -6,6 +6,7 @@ spec:
   gateways:
     - istio-system/gateway
   hosts:
+#    - klog.lync2m.com
     - klog.ciiplat.com
   http:
     - name: route-klog

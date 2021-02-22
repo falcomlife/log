@@ -17,6 +17,7 @@ limitations under the License.
 package controller
 
 import (
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes"
@@ -30,7 +31,9 @@ import (
 	"k8s.io/log-controller/pkg/apis/logcontroller/v1alpha1"
 	"sync"
 
+	appsinformers "k8s.io/client-go/informers/apps/v1"
 	coreinformers "k8s.io/client-go/informers/core/v1"
+	appslisters "k8s.io/client-go/listers/apps/v1"
 	clientset "k8s.io/log-controller/pkg/generated/clientset/versioned"
 	logscheme "k8s.io/log-controller/pkg/generated/clientset/versioned/scheme"
 	informers "k8s.io/log-controller/pkg/generated/informers/externalversions/logcontroller/v1alpha1"
@@ -100,12 +103,17 @@ type Controller struct {
 	kubeclientset kubernetes.Interface
 	// logclientset is a clientset for our own API group
 	logclientset clientset.Interface
+
+	deploymentsLister appslisters.DeploymentLister
+	deploymentsSynced cache.InformerSynced
 	// prometheus datasource
 	prometheusClient log.PrometheusClient
 	// setting from yaml
 	warningSetting v1alpha1.Warning
 	// queue for the node metrics, those come from prometheus
 	PrometheusMetricQueue *sync.Map
+	// queue for the deployment
+	DeploymentQueue *sync.Map
 	// queue for the pod metrics, those come from prometheus
 	PrometheusPodMetricQueue map[string]*log.Pod
 	NodeCpuAnalysis          map[string]*log.NodeSample
@@ -130,6 +138,7 @@ type Controller struct {
 func NewController(
 	kubeclientset kubernetes.Interface,
 	logclientset clientset.Interface,
+	deploymentInformer appsinformers.DeploymentInformer,
 	logInformer informers.LogInformer,
 	nodeInformer coreinformers.NodeInformer) *Controller {
 
@@ -146,11 +155,14 @@ func NewController(
 	controller := &Controller{
 		kubeclientset:            kubeclientset,
 		logclientset:             logclientset,
+		deploymentsLister:        deploymentInformer.Lister(),
+		deploymentsSynced:        deploymentInformer.Informer().HasSynced,
 		prometheusClient:         log.PrometheusClient{},
 		warningSetting:           v1alpha1.Warning{},
 		logsLister:               logInformer.Lister(),
 		logsSynced:               logInformer.Informer().HasSynced,
 		PrometheusMetricQueue:    &sync.Map{},
+		DeploymentQueue:          &sync.Map{},
 		PrometheusPodMetricQueue: make(map[string]*log.Pod),
 		Warnings:                 make([]*log.WarningList, 0),
 		workqueue:                workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "Logs"),
@@ -173,6 +185,21 @@ func NewController(
 			controller.nodeHandler(new)
 		},
 	})
+
+	deploymentInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc: controller.handleDeploymentAdd,
+		UpdateFunc: func(old, new interface{}) {
+			newDepl := new.(*appsv1.Deployment)
+			oldDepl := old.(*appsv1.Deployment)
+			if newDepl.ResourceVersion == oldDepl.ResourceVersion {
+				// Periodic resync will send update events for all known Deployments.
+				// Two different versions of the same Deployment will always have different RVs.
+				return
+			}
+			controller.handleDeploymentAdd(new)
+		},
+		DeleteFunc: controller.handleDeploymentDelete,
+	})
 	return controller
 }
 
@@ -192,4 +219,14 @@ func (c *Controller) enqueueLog(obj interface{}) {
 		return
 	}
 	c.workqueue.Add(key)
+}
+
+func (c *Controller) handleDeploymentAdd(obj interface{}) {
+	deployment := obj.(*appsv1.Deployment)
+	c.DeploymentQueue.Store(deployment.Name, deployment)
+}
+
+func (c *Controller) handleDeploymentDelete(obj interface{}) {
+	deployment := obj.(*appsv1.Deployment)
+	c.DeploymentQueue.Delete(deployment.Name)
 }

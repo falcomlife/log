@@ -78,6 +78,7 @@ func runCrd() {
 
 	controller = controller2.NewController(kubeClient,
 		exampleClient,
+		kubeInformerFactory.Apps().V1().Deployments(),
 		exampleInformerFactory.Logcontroller().V1alpha1().Logs(),
 		kubeInformerFactory.Core().V1().Nodes())
 
@@ -105,6 +106,7 @@ func beegoInit() {
 				beego.Router("/nodes", &api.NodeController{Ctl: controller})
 				beego.Router("/pods", &api.PodController{Ctl: controller})
 				beego.Router("/warnings", &api.WarningController{Ctl: controller})
+				beego.Router("/services", &api.DeploymentController{Ctl: controller})
 				beego.InsertFilter("*", beego.BeforeRouter, cors.Allow(&cors.Options{
 					AllowAllOrigins:  true,
 					AllowMethods:     []string{"*"},

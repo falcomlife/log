@@ -21,7 +21,7 @@ spec:
         warningValue: 30
         leftTime: 120
       memory:
-        step: 15klo
+        step: 15
         range: 150
         warningValue: 70
         leftTime: 120

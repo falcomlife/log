@@ -6,11 +6,16 @@ package api
 import (
 	"encoding/json"
 	"github.com/astaxie/beego"
+	v1 "k8s.io/api/apps/v1"
 	controller2 "k8s.io/log-controller/controller"
 	"k8s.io/log-controller/log"
 	"sort"
 )
 
+type DeploymentController struct {
+	beego.Controller
+	Ctl *controller2.Controller
+}
 type WarningController struct {
 	beego.Controller
 	Ctl *controller2.Controller
@@ -22,6 +27,43 @@ type NodeController struct {
 type PodController struct {
 	beego.Controller
 	Ctl *controller2.Controller
+}
+
+// get deployment info
+func (this *DeploymentController) Get() {
+	var result string
+	var list = make([]interface{}, 0)
+	this.Ctl.DeploymentQueue.Range(func(k, v interface{}) bool {
+		dep, _ := v.(*v1.Deployment)
+		if dep.Namespace == "middleplatform" {
+			list = append(list, log.Deployment{
+				Name:        dep.Name,
+				NameSpace:   dep.Namespace,
+				Kind:        "Deployment",
+				Description: dep.Annotations["description"],
+				GitUrl:      dep.Annotations["gitUrl"],
+				GatewatUrl:  dep.Annotations["gatewayUrl"],
+				InnerUrl:    dep.Annotations["innerUrl"],
+				Replicas:    *dep.Spec.Replicas,
+				Ready:       dep.Status.ReadyReplicas,
+			})
+		}
+		return true
+	})
+	if len(list) != 0 {
+		sort.SliceStable(list, func(i, j int) bool {
+			n1, _ := list[i].(log.Deployment)
+			n2, _ := list[j].(log.Deployment)
+			return n1.Name < n2.Name
+		})
+	}
+	b, err := json.Marshal(list)
+	if err != nil {
+		result = err.Error()
+	} else {
+		result = string(b)
+	}
+	this.Ctx.WriteString(result)
 }
 
 // get warning info

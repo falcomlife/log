@@ -12,6 +12,8 @@ spec:
       labels:
         app: klog
     spec:
+      imagePullSecrets:
+      - name: registry-pull-secret
       containers:
         - command:
             - /opt/log-controller
