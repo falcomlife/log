@@ -51,7 +51,7 @@ const (
 	// MessageResourceSynced is the message used for an Event fired when a Log
 	MessageResourceSended = "Daily report message is sended"
 	// web url
-	WebUrl = "https://klog.ciiplat.com/#/node"
+	WebUrl = "https://klog.lync2m.com/#/node"
 )
 
 // Warning message apply to events when k8s cluster check yaml field
