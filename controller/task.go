@@ -123,6 +123,8 @@ func event(c *Controller) {
 
 func (c *Controller) runWarningCronTask() {
 	crontab := cron.New(cron.WithSeconds())
+	cpu_sendflag := ture
+	memory_sendflag := true
 	task := func() {
 		defer mutex.Unlock()
 		mutex.Lock()
@@ -133,10 +135,13 @@ func (c *Controller) runWarningCronTask() {
 				if nameNode == nameSample {
 					cpuExtremePointMedian := nodeSample.ExtremePointMedian * 100
 					cpuValue, _ := strconv.ParseFloat(fmt.Sprintf("%.2f", cpuExtremePointMedian), 64)
-					if node.CpuLaster > cpuValue && node.CpuLaster > float64(c.warningSetting.ExtremePointMedian.Cpu.WarningValue) {
+					if node.CpuLaster > cpuValue && node.CpuLaster > float64(c.warningSetting.ExtremePointMedian.Cpu.WarningValue) && cpu_sendflag {
 						cl := strconv.FormatFloat(node.CpuLaster, 'f', -1, 64)
 						cv := strconv.FormatFloat(cpuValue, 'f', -1, 64)
 						c.warning(nameNode, "Cpu峰值", "Cpu占用达到近期高点", make([]log.Pod, 0), cpuValue, node.CpuLaster, time.Now(), nameNode+"，过去一天cpu使用峰值中值为"+cv+"%,当前使用量为"+cl+"%")
+						cpu_sendflag = false
+					} else if node.CpuLaster <= cpuValue && !cpu_sendflag {
+						cpu_sendflag = true
 					}
 				}
 			}
@@ -146,10 +151,13 @@ func (c *Controller) runWarningCronTask() {
 					allocatable := c.nodes[nameNode].Status.Allocatable
 					memoryAllocatable := float64(allocatable.Memory().Value()) / math.Pow(2, 30)
 					memoryWarningValue := (float64(c.warningSetting.ExtremePointMedian.Memory.WarningValue) / 100) * float64(memoryAllocatable)
-					if node.MemLaster > extremePointMedian && node.MemLaster > memoryWarningValue {
+					if node.MemLaster > extremePointMedian && node.MemLaster > memoryWarningValue && memory_sendflag {
 						cl := strconv.FormatFloat(node.MemLaster, 'f', -1, 64)
 						cv := fmt.Sprintf("%.2f", extremePointMedian)
-						c.warning(nameNode, "Cpu峰值", "Cpu占用达到近期高点", make([]log.Pod, 0), extremePointMedian, node.CpuLaster, time.Now(), nameNode+"，过去一天内存使用峰值中值为"+cv+"Gi,当前使用量为"+cl+"Gi")
+						c.warning(nameNode, "内存峰值", "内存占用达到近期高点", make([]log.Pod, 0), extremePointMedian, node.CpuLaster, time.Now(), nameNode+"，过去一天内存使用峰值中值为"+cv+"Gi,当前使用量为"+cl+"Gi")
+						memory_sendflag = false
+					} else if node.MemLaster <= extremePointMedian && memory_sendflag {
+						memory_sendflag = true
 					}
 				}
 			}
