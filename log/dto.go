@@ -5,31 +5,31 @@ import (
 )
 
 type Node struct {
-	Name          string            `json:"name"`
-	Cpu           map[string]Cpu    `json:"cpu"`
-	Memory        map[string]Memory `json:"memory"`
-	CpuSumMax     float64           `json:"cpuSumMax"`
-	CpuSumMaxTime time.Time         `json:"cpuSumMaxTime"`
-	CpuSumMin     float64           `json:"cpuSumMin"`
-	CpuSumMinTime time.Time         `json:"cpuSumMinTime"`
-	CpuSumAvg     float64           `json:"cpuSumAvg"`
-	CpuVolatility float64           `json:"cpuVolatility"`
-	CpuMaxRatio   float64           `json:"cpuMaxRatio"`
-	CpuLaster     float64           `json:"cpuLaster"`
-	MemMax        float64           `json:"memMax"`
-	MemMaxTime    time.Time         `json:"memMaxTime"`
-	MemMin        float64           `json:"memMin"`
-	MemMinTime    time.Time         `json:"memMinTime"`
-	MemAvg        float64           `json:"memAvg"`
-	MemVolatility float64           `json:"memVolatility"`
-	MemMaxRatio   float64           `json:"memMaxRatio"`
-	MemLaster     float64           `json:"memLaster"`
-	DiskUsed      float64           `json:"diskUsed"`
-	DiskUsedRatio float64           `json:"diskUsedRatio"`
-	DiskTotal     float64           `json:"diskTotal"`
-	DiskLeftTime  float64           `json:"diskLeftTime"`
-	Amplitude     float64           `json:"amplitude"`
-	Allocatable   Allocatable       `json:"allocatable"`
+	Name          string            `json:"name"`          // 名称
+	Cpu           map[string]Cpu    `json:"cpu"`           // cpu
+	Memory        map[string]Memory `json:"memory"`        // 内存
+	CpuSumMax     float64           `json:"cpuSumMax"`     // cpu各个核心总和最大值
+	CpuSumMaxTime time.Time         `json:"cpuSumMaxTime"` // cpu各个核心总和最大值发生时间
+	CpuSumMin     float64           `json:"cpuSumMin"`     // cpu各个核心总和最小值
+	CpuSumMinTime time.Time         `json:"cpuSumMinTime"` // cpu各个核心总和最小值发生时间
+	CpuSumAvg     float64           `json:"cpuSumAvg"`     // cpu各个核心平均值
+	CpuVolatility float64           `json:"cpuVolatility"` // cpu震动幅度
+	CpuMaxRatio   float64           `json:"cpuMaxRatio"`   // cpu值斜率最大
+	CpuLaster     float64           `json:"cpuLaster"`     // 上次cpu记录值
+	MemMax        float64           `json:"memMax"`        // 内存最大值
+	MemMaxTime    time.Time         `json:"memMaxTime"`    // 内存最大值发生时间
+	MemMin        float64           `json:"memMin"`        // 内存最小值
+	MemMinTime    time.Time         `json:"memMinTime"`    // 内存最小值发生时间
+	MemAvg        float64           `json:"memAvg"`        // 内存平均值
+	MemVolatility float64           `json:"memVolatility"` // 内存震动幅度
+	MemMaxRatio   float64           `json:"memMaxRatio"`   // 内存斜率最大值
+	MemLaster     float64           `json:"memLaster"`     // 上次内存记录值
+	DiskUsed      float64           `json:"diskUsed"`      // 磁盘使用值
+	DiskUsedRatio float64           `json:"diskUsedRatio"` // 磁盘使用率
+	DiskTotal     float64           `json:"diskTotal"`     // 磁盘总值
+	DiskLeftTime  float64           `json:"diskLeftTime"`  // 磁盘剩余可用时间
+	Amplitude     float64           `json:"amplitude"`     // 波动
+	Allocatable   Allocatable       `json:"allocatable"`   // node的资源可分配值
 }
 
 type Pod struct {

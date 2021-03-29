@@ -17,7 +17,7 @@ spec:
       containers:
         - command:
             - /opt/log-controller
-          image: registry.cn-hangzhou.aliyuncs.com/cotte-internal/log:0.0.2
+          image: registry.cn-hangzhou.aliyuncs.com/cotte-internal/log:0.0.2-ciiplat
           imagePullPolicy: Always
           name: klog
           ports:
