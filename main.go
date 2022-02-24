@@ -19,6 +19,7 @@ package main
 import (
 	"flag"
 	"github.com/astaxie/beego"
+	"github.com/astaxie/beego/logs"
 	"github.com/astaxie/beego/plugins/cors"
 	kubeinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
@@ -68,24 +69,24 @@ func runCrd() {
 		klog.Fatalf("Error building kubernetes clientset: %s", err.Error())
 	}
 
-	exampleClient, err := clientset.NewForConfig(cfg)
+	logClient, err := clientset.NewForConfig(cfg)
 	if err != nil {
 		klog.Fatalf("Error building example clientset: %s", err.Error())
 	}
 
 	kubeInformerFactory := kubeinformers.NewSharedInformerFactory(kubeClient, time.Second*10)
-	exampleInformerFactory := informers.NewSharedInformerFactory(exampleClient, time.Second*10)
+	logInformerFactory := informers.NewSharedInformerFactory(logClient, time.Second*10)
 
 	controller = controller2.NewController(kubeClient,
-		exampleClient,
+		logClient,
 		kubeInformerFactory.Apps().V1().Deployments(),
-		exampleInformerFactory.Logcontroller().V1alpha1().Logs(),
+		logInformerFactory.Logcontroller().V1alpha1().Logs(),
 		kubeInformerFactory.Core().V1().Nodes())
 
 	// notice that there is no need to run Start methods in a separate goroutine. (i.e. go kubeInformerFactory.Start(stopCh)
 	// Start method is non-blocking and runs all registered informers in a dedicated goroutine.
 	kubeInformerFactory.Start(stopCh)
-	exampleInformerFactory.Start(stopCh)
+	logInformerFactory.Start(stopCh)
 
 	if err = controller.Run(2, stopCh); err != nil {
 		klog.Fatalf("Error running controller: %s", err.Error())
@@ -98,15 +99,19 @@ func init() {
 }
 
 func beegoInit() {
+	//db.Orm()
 	for {
 		select {
 		case <-time.After(3 * time.Second):
 			if controller != nil {
+				logs.SetLogger(logs.AdapterConsole)
+				beego.InsertFilter("*", beego.BeforeRouter, cors.Allow(&cors.Options{AllowAllOrigins: true, AllowMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}, AllowHeaders: []string{"Origin", "Authorization", "Access-Control-Allow-Origin", "Access-Control-Allow-Headers", "Content-Type"}, ExposeHeaders: []string{"Content-Length", "Access-Control-Allow-Origin", "Access-Control-Allow-Headers", "Content-Type"}, AllowCredentials: true}))
 				beego.SetStaticPath("/", "web")
 				beego.Router("/nodes", &api.NodeController{Ctl: controller})
 				beego.Router("/pods", &api.PodController{Ctl: controller})
 				beego.Router("/warnings", &api.WarningController{Ctl: controller})
 				beego.Router("/services", &api.DeploymentController{Ctl: controller})
+				beego.Router("/chart", &api.ChartController{Ctl: controller})
 				beego.InsertFilter("*", beego.BeforeRouter, cors.Allow(&cors.Options{
 					AllowAllOrigins:  true,
 					AllowMethods:     []string{"*"},

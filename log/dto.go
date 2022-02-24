@@ -71,6 +71,7 @@ type Warning struct {
 	Suspect      []Suspect `json:"suspect"`      // 造成问题的嫌疑人(pod)
 }
 
+// 嫌疑人,引起nodes资源使用升高的pod集合
 type Suspect struct {
 	Type        string  `json:"type"`
 	Name        string  `json:"name"`
@@ -80,13 +81,64 @@ type Suspect struct {
 }
 
 type Deployment struct {
-	Name        string `json:"name"`
-	NameSpace   string `json:"nameSpace"`
-	Kind        string `json:"kind"`
-	Description string `json:"description"`
-	GitUrl      string `json:"gitUrl"`
-	GatewatUrl  string `json:"gatewayUrl"`
-	InnerUrl    string `json:"innerUrl"`
-	Replicas    int32  `json:"replicas"`
-	Ready       int32  `json:"ready"`
+	Name         string   `json:"name"`
+	Namespace    string   `json:"namespace"`
+	Kind         string   `json:"kind"`
+	Description  string   `json:"description"`
+	GitUrl       string   `json:"gitUrl"`
+	GatewatUrl   string   `json:"gatewayUrl"`
+	InnerUrl     string   `json:"innerUrl"`
+	PodNames     []string `json:"podNames"`
+	PodStatus    []string `json:"podStatus"`
+	StartTime    []string `json:"startTime"`
+	Duration     []string `json:"duration"`
+	RestartTimes []int    `json:"restartTimes"`
+	Replicas     int32    `json:"replicas"`
+	Ready        int32    `json:"ready"`
+}
+
+type ServiceInfo struct {
+	Time    string `json:"time"`
+	Kind    string `json:"kind"`
+	Type    string `json:"type"`
+	Reason  string `json:"reason"`
+	Name    string `json:"name"`
+	Message string `json:"message"`
+}
+
+type ServiceLog struct {
+	Name    string `json:"name"`
+	Content string `json:"content"`
+}
+
+type DeploymentBody struct {
+	Action    string `json:"action"`
+	Name      string `json:"name"`
+	Namespace string `json:"namespace"`
+	Kind      string `json:"kind"`
+}
+
+type JavaGitlabCi struct {
+	Package   Package `json:"package"`
+	Release   Release `json:"release"`
+	Deploy    Deploy  `json:"deploy"`
+	Namespace string  `json:"namespace"`
+	name      string  `json:"name"`
+}
+
+type Package struct {
+	Image          string `json:"image"`
+	OnlyRefs       string `json:"onlyRefs"`
+	ArtifactsPaths string `json:"artifactsPaths"`
+}
+
+type Release struct {
+	Image        string `json:"image"`
+	Dependencies string `json:"dependencies"`
+	OnlyRefs     string `json:"onlyRefs"`
+}
+
+type Deploy struct {
+	Image    string `json:"image"`
+	OnlyRefs string `json:"onlyRefs"`
 }

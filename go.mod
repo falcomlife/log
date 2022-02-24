@@ -6,6 +6,8 @@ go 1.14
 
 require (
 	github.com/astaxie/beego v1.12.3
+	github.com/go-sql-driver/mysql v1.6.0
+	github.com/jmoiron/sqlx v1.3.4
 	github.com/json-iterator/go v1.1.10
 	github.com/robfig/cron/v3 v3.0.1
 	gonum.org/v1/plot v0.8.1
@@ -14,6 +16,7 @@ require (
 	k8s.io/client-go v0.19.4
 	k8s.io/code-generator v0.19.4
 	k8s.io/klog/v2 v2.4.0
+	k8s.io/utils v0.0.0-20220210201930-3a6ce19ff2f9
 )
 
 replace (

@@ -3,7 +3,7 @@
 # Author: sora
 
 #FROM golang
-FROM  golang:1.14.4
+FROM  golang:1.16.6
 
 MAINTAINER sora sorawingwind@163.com
 

@@ -101,7 +101,7 @@ const (
 // Controller is the controller implementation for Log resources
 type Controller struct {
 	// kubeclientset is a standard kubernetes clientset
-	kubeclientset kubernetes.Interface
+	Kubeclientset kubernetes.Interface
 	// logclientset is a clientset for our own API group
 	logclientset clientset.Interface
 
@@ -117,11 +117,11 @@ type Controller struct {
 	DeploymentQueue *sync.Map
 	// queue for the pod metrics, those come from prometheus
 	PrometheusPodMetricQueue map[string]*log.Pod
-	NodeCpuAnalysis          map[string]*log.NodeSample
-	NodeMemoryAnalysis       map[string]*log.NodeSample
-	Warnings                 []*log.WarningList
-	logsLister               listers.LogLister
-	logsSynced               cache.InformerSynced
+	//NodeCpuAnalysis          map[string]*log.NodeSample
+	//NodeMemoryAnalysis       map[string]*log.NodeSample
+	Warnings   []*log.WarningList
+	logsLister listers.LogLister
+	logsSynced cache.InformerSynced
 	// workqueue is a rate limited work queue. This is used to queue work to be
 	// processed instead of performing it as soon as a change happens. This
 	// means we can ensure we only process a fixed amount of resources at a
@@ -154,7 +154,7 @@ func NewController(
 	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: controllerAgentName})
 
 	controller := &Controller{
-		kubeclientset:            kubeclientset,
+		Kubeclientset:            kubeclientset,
 		logclientset:             logclientset,
 		deploymentsLister:        deploymentInformer.Lister(),
 		deploymentsSynced:        deploymentInformer.Informer().HasSynced,

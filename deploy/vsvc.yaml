@@ -6,12 +6,12 @@ spec:
   gateways:
     - istio-system/gateway
   hosts:
-    - klog.lync2m.com
-#    - klog.ciiplat.com
+#    - klog.lync2m.com
+    - klog.xy.ciiplat.com
   http:
     - name: route-klog
       route:
         - destination:
-            host: klog.monitoring.svc.cluster.local
+            host: klog.klog.svc.cluster.local
             port:
               number: 8080

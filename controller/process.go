@@ -39,11 +39,11 @@ func (c *Controller) Run(threadiness int, stopCh <-chan struct{}) error {
 	for i := 0; i < threadiness; i++ {
 		go wait.Until(c.runWorker, time.Second, stopCh)
 	}
-	go c.runPrometheusWorker()
-	go initAnalysis(c)
-	go c.runCronTask(c.PrometheusMetricQueue, c.PrometheusPodMetricQueue)
-	go c.runWarningCronTask()
-	go c.runCleanCronTask()
+	//go c.runPrometheusWorker()
+	//go initAnalysis(c)
+	//go c.runCronTask(c.PrometheusMetricQueue, c.PrometheusPodMetricQueue)
+	//go c.runWarningCronTask()
+	//go c.runCleanCronTask()
 	klog.Info("Started workers")
 	<-stopCh
 	klog.Info("Shutting down workers")
@@ -51,14 +51,14 @@ func (c *Controller) Run(threadiness int, stopCh <-chan struct{}) error {
 	return nil
 }
 
-func initAnalysis(c *Controller) {
-	for {
-		if c.prometheusClient.Protocol != "" && c.prometheusClient.Host != "" && c.prometheusClient.Port != "" {
-			analysis(c)
-			break
-		}
-	}
-}
+//func initAnalysis(c *Controller) {
+//	for {
+//		if c.prometheusClient.Protocol != "" && c.prometheusClient.Host != "" && c.prometheusClient.Port != "" {
+//			analysis(c)
+//			break
+//		}
+//	}
+//}
 
 // runWorker is a long-running function that will couanyntinually call the
 // processNextWorkItem function in order to read and process a message on the

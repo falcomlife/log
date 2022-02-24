@@ -1,12 +1,13 @@
 package controller
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/robfig/cron/v3"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
-	"k8s.io/log-controller/common"
+	"k8s.io/log-controller/db"
 	"k8s.io/log-controller/log"
 	"math"
 	"os"
@@ -21,7 +22,7 @@ func (c *Controller) runCronTask(nodes *sync.Map, pods map[string]*log.Pod) {
 	task := func() {
 		batchNodes(nodes, c.nodes)
 		batchPods(pods)
-		analysis(c)
+		//analysis(c)
 		//log.Draw(c.NodeCpuAnalysis)
 		c.prometheusClient.SamplingTimes = 0
 		msg := log.Messages("", "", log.TagId, log.AgentId, "今日日报已生成，请访问"+WebUrl+"查看")
@@ -40,24 +41,25 @@ func (c *Controller) runCronTask(nodes *sync.Map, pods map[string]*log.Pod) {
 }
 
 // Refresh top one percent value daily
-func analysis(c *Controller) error {
-	cpu, err := log.AnalysisCpu(c.prometheusClient.Protocol, c.prometheusClient.Host, c.prometheusClient.Port)
-	mem, err := log.AnalysisMemory(c.prometheusClient.Protocol, c.prometheusClient.Host, c.prometheusClient.Port)
-	if err != nil {
-		return err
-	}
-	for name, node := range cpu {
-		node.ExtremePointMedian = common.Median(node.GetMaximumPoint())
-		cpu[name] = node
-	}
-	for name, node := range mem {
-		node.ExtremePointMedian = common.Median(node.GetMaximumPoint())
-		mem[name] = node
-	}
-	c.NodeCpuAnalysis = cpu
-	c.NodeMemoryAnalysis = mem
-	return nil
-}
+// Deprecated: Use AI instance of this function
+//func analysis(c *Controller) error {
+//	cpu, err := log.AnalysisCpu(c.prometheusClient.Protocol, c.prometheusClient.Host, c.prometheusClient.Port)
+//	mem, err := log.AnalysisMemory(c.prometheusClient.Protocol, c.prometheusClient.Host, c.prometheusClient.Port)
+//	if err != nil {
+//		return err
+//	}
+//	for name, node := range cpu {
+//		node.ExtremePointMedian = common.Median(node.GetMaximumPoint())
+//		cpu[name] = node
+//	}
+//	for name, node := range mem {
+//		node.ExtremePointMedian = common.Median(node.GetMaximumPoint())
+//		mem[name] = node
+//	}
+//	c.NodeCpuAnalysis = cpu
+//	c.NodeMemoryAnalysis = mem
+//	return nil
+//}
 
 // Count the nodes information of the day
 func batchNodes(nodes *sync.Map, corev1Nodes map[string]corev1.Node) {
@@ -123,46 +125,64 @@ func event(c *Controller) {
 
 func (c *Controller) runWarningCronTask() {
 	crontab := cron.New(cron.WithSeconds())
-	cpu_sendflag := ture
-	memory_sendflag := true
+	//cpu_sendflag := true
+	//memory_sendflag := true
+	indexLaster := make(map[int64]float64)
 	task := func() {
 		defer mutex.Unlock()
 		mutex.Lock()
-		c.PrometheusMetricQueue.Range(func(nameNodeOri, nodeOri interface{}) bool {
-			nameNode := nameNodeOri.(string)
-			node := nodeOri.(log.Node)
-			for nameSample, nodeSample := range c.NodeCpuAnalysis {
-				if nameNode == nameSample {
-					cpuExtremePointMedian := nodeSample.ExtremePointMedian * 100
-					cpuValue, _ := strconv.ParseFloat(fmt.Sprintf("%.2f", cpuExtremePointMedian), 64)
-					if node.CpuLaster > cpuValue && node.CpuLaster > float64(c.warningSetting.ExtremePointMedian.Cpu.WarningValue) && cpu_sendflag {
-						cl := strconv.FormatFloat(node.CpuLaster, 'f', -1, 64)
-						cv := strconv.FormatFloat(cpuValue, 'f', -1, 64)
-						c.warning(nameNode, "Cpu峰值", "Cpu占用达到近期高点", make([]log.Pod, 0), cpuValue, node.CpuLaster, time.Now(), nameNode+"，过去一天cpu使用峰值中值为"+cv+"%,当前使用量为"+cl+"%")
-						cpu_sendflag = false
-					} else if node.CpuLaster <= cpuValue && !cpu_sendflag {
-						cpu_sendflag = true
-					}
+		// TODO get AI result from db and add warning to list
+		results := db.GetResult(c.nodes)
+		for _, result := range results {
+			margemap := make(map[string]interface{})
+			json.Unmarshal([]byte(result.MergeIndex), &margemap)
+			indexes := margemap["index"].([]interface{})
+			datas := margemap["data"].([]interface{})
+			for i, index := range indexes {
+				int64Index := int64(index.(float64))
+				if _, exsit := indexLaster[int64Index]; !exsit {
+					data := datas[i].([]interface{})
+					float64Data := data[0].(float64)
+					c.warning(result.Instance, "Cpu峰值", "Cpu占用达到近期高点", make([]log.Pod, 0), float64Data, 0, time.Unix(int64Index/1000, 0), result.Instance+"使用量达到相对峰值")
+					indexLaster[int64Index] = float64Data
 				}
 			}
-			for nameSample, nodeSample := range c.NodeMemoryAnalysis {
-				if nameNode == nameSample {
-					extremePointMedian := nodeSample.ExtremePointMedian / math.Pow(2, 30)
-					allocatable := c.nodes[nameNode].Status.Allocatable
-					memoryAllocatable := float64(allocatable.Memory().Value()) / math.Pow(2, 30)
-					memoryWarningValue := (float64(c.warningSetting.ExtremePointMedian.Memory.WarningValue) / 100) * float64(memoryAllocatable)
-					if node.MemLaster > extremePointMedian && node.MemLaster > memoryWarningValue && memory_sendflag {
-						cl := strconv.FormatFloat(node.MemLaster, 'f', -1, 64)
-						cv := fmt.Sprintf("%.2f", extremePointMedian)
-						c.warning(nameNode, "内存峰值", "内存占用达到近期高点", make([]log.Pod, 0), extremePointMedian, node.CpuLaster, time.Now(), nameNode+"，过去一天内存使用峰值中值为"+cv+"Gi,当前使用量为"+cl+"Gi")
-						memory_sendflag = false
-					} else if node.MemLaster <= extremePointMedian && memory_sendflag {
-						memory_sendflag = true
-					}
-				}
-			}
-			return true
-		})
+		}
+		//c.PrometheusMetricQueue.Range(func(nameNodeOri, nodeOri interface{}) bool {
+		//	nameNode := nameNodeOri.(string)
+		//	node := nodeOri.(log.Node)
+		//	for nameSample, nodeSample := range c.NodeCpuAnalysis {
+		//		if nameNode == nameSample {
+		//			cpuExtremePointMedian := nodeSample.ExtremePointMedian * 100
+		//			cpuValue, _ := strconv.ParseFloat(fmt.Sprintf("%.2f", cpuExtremePointMedian), 64)
+		//			if node.CpuLaster > cpuValue && node.CpuLaster > float64(c.warningSetting.ExtremePointMedian.Cpu.WarningValue) && cpu_sendflag {
+		//				cl := strconv.FormatFloat(node.CpuLaster, 'f', -1, 64)
+		//				cv := strconv.FormatFloat(cpuValue, 'f', -1, 64)
+		//				c.warning(nameNode, "Cpu峰值", "Cpu占用达到近期高点", make([]log.Pod, 0), cpuValue, node.CpuLaster, time.Now(), nameNode+"，过去一天cpu使用峰值中值为"+cv+"%,当前使用量为"+cl+"%")
+		//				cpu_sendflag = false
+		//			} else if node.CpuLaster <= cpuValue && !cpu_sendflag {
+		//				cpu_sendflag = true
+		//			}
+		//		}
+		//	}
+		//	for nameSample, nodeSample := range c.NodeMemoryAnalysis {
+		//		if nameNode == nameSample {
+		//			extremePointMedian := nodeSample.ExtremePointMedian / math.Pow(2, 30)
+		//			allocatable := c.nodes[nameNode].Status.Allocatable
+		//			memoryAllocatable := float64(allocatable.Memory().Value()) / math.Pow(2, 30)
+		//			memoryWarningValue := (float64(c.warningSetting.ExtremePointMedian.Memory.WarningValue) / 100) * float64(memoryAllocatable)
+		//			if node.MemLaster > extremePointMedian && node.MemLaster > memoryWarningValue && memory_sendflag {
+		//				cl := strconv.FormatFloat(node.MemLaster, 'f', -1, 64)
+		//				cv := fmt.Sprintf("%.2f", extremePointMedian)
+		//				c.warning(nameNode, "内存峰值", "内存占用达到近期高点", make([]log.Pod, 0), extremePointMedian, node.CpuLaster, time.Now(), nameNode+"，过去一天内存使用峰值中值为"+cv+"Gi,当前使用量为"+cl+"Gi")
+		//				memory_sendflag = false
+		//			} else if node.MemLaster <= extremePointMedian && memory_sendflag {
+		//				memory_sendflag = true
+		//			}
+		//		}
+		//	}
+		//	return true
+		//})
 	}
 	crontab.AddFunc("*/10 * * * * *", task)
 	crontab.Start()

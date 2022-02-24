@@ -179,12 +179,12 @@ func emetricMapToPod(m map[string]interface{}, path string) (map[string]Pod, err
 		if len(metric) == 0 {
 			continue
 		}
-		if metric["pod"] == nil || metric["namespace"] == nil || metric["node"] == nil {
+		if metric["pod"] == nil || metric["namespace"] == nil || metric["instance"] == nil {
 			continue
 		}
 		instance := metric["pod"].(string)
 		ns := metric["namespace"].(string)
-		node := metric["node"].(string)
+		node := metric["instance"].(string)
 		inst := Pod{
 			Name:      instance,
 			Namespace: ns,
@@ -206,12 +206,12 @@ func emetricMapToPod(m map[string]interface{}, path string) (map[string]Pod, err
 			inst.CpuSumMin = valueFloat
 			inst.CpuSumMinTime = time.Now()
 			inst.CpuSumAvg = valueFloat
-			rm[inst.Name] = inst
 			inst.MemMax = valueFloat
 			inst.MemMaxTime = time.Now()
 			inst.MemMin = valueFloat
 			inst.MemMinTime = time.Now()
 			inst.MemAvg = valueFloat
+			rm[inst.Name] = inst
 		} else if values != nil {
 			if strings.HasPrefix(path, PodCpuUsedSample) {
 				valueStart, ok := values[0].([]interface{})
@@ -240,8 +240,8 @@ func emetricMapToPod(m map[string]interface{}, path string) (map[string]Pod, err
 				inst.MemLaster = valueEndFloat
 				inst.MemVolatility = valueEndFloat - valueStartFloat
 			}
+			rm[ns+"/"+instance] = inst
 		}
-		rm[ns+"/"+instance] = inst
 	}
 	return rm, nil
 }

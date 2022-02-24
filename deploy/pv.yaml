@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  annotations:
+    pv.kubernetes.io/provisioned-by: everest-csi-provisioner
+  name: cce-result
+spec:
+  accessModes:
+    - ReadWriteMany
+  capacity:
+    storage: 500Gi
+  claimRef:
+    apiVersion: v1
+    kind: PersistentVolumeClaim
+    name: efs-result
+    namespace: monitoring
+  csi:
+    driver: sfsturbo.csi.everest.io
+    fsType: nfs
+    volumeAttributes:
+      everest.io/share-export-location: 172.18.61.166:/cce-efs-result
+      storage.kubernetes.io/csiProvisionerIdentity: everest-csi-provisioner
+    volumeHandle: 852ed8f8-d37e-4537-849c-da377ccc1461
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: csi-sfsturbo
+  volumeMode: Filesystem
