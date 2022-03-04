@@ -1,0 +1,55 @@
+apiVersion: logcontroller.k8s.io/v1alpha1
+kind: Log
+metadata:
+  name: klog
+  namespace: klog
+spec:
+  prometheus:
+    name: log
+#    protocol: http
+#    host: prometheus-slb.prometheus
+#    port: "9090"
+#    period: 10
+    protocol: http
+    host: 172.16.88.91
+    port: "39090"
+    period: 10
+  warning:
+    sustained:
+      cpu:
+        step: 15
+        range: 150
+        warningValue: 30
+        leftTime: 120
+      memory:
+        step: 15
+        range: 150
+        warningValue: 70
+        leftTime: 120
+      disk:
+        range: 120
+        leftTime: 600
+    extremePointMedian:
+      cpu:
+        warningValue: 80
+      memory:
+        warningValue: 80
+  template:
+    address: swr.cn-north-4.myhuaweicloud.com
+    username: cn-north-4@KC0BMKDYFR9ZZ0YYVL0T
+    password: 034fc4cf8c1d82aac29b2cb392076dc7fd048c72d67fb268fd3698f10f65dfdc
+    webRealmName: http://www.xy.ciiplat.com
+    gatewayRealmName: http://gateway.xy.ciiplat.com
+    env: test
+    registry:
+      java:
+        packageImage: swr.cn-north-4.myhuaweicloud.com/cotte-internal/maven:0.0.4
+        releaseImage: docker:18.03-dind
+        deployImage: swr.cn-north-4.myhuaweicloud.com/cotte-internal/k8s-xinyuan-test:1.17.17
+      npm:
+        packageImage: swr.cn-north-4.myhuaweicloud.com/cotte-internal/npm-official:0.0.2
+        releaseImage: docker:stable-dind
+        deployImage: swr.cn-north-4.myhuaweicloud.com/cotte-internal/k8s-xinyuan-test:1.17.17
+
+
+

@@ -1,0 +1,90 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    istio-injection: disabled
+  name: klog
+---
+apiVersion: v1
+data:
+  .dockerconfigjson: ewoJImF1dGhzIjogewoJCSIxNzIuMTYuNzcuNTM6MzA4ODIiOiB7CgkJCSJhdXRoIjogIllXUnRhVzQ2WVdSdGFXNHhNak09IgoJCX0sCgkJInJlZ2lzdHJ5LmNuLWJlaWppbmcuYWxpeXVuY3MuY29tIjogewoJCQkiYXV0aCI6ICJhM1YwWlhOdFlYSjBjMkU2TVhGaGVrQlhVMWc9IgoJCX0sCgkJInJlZ2lzdHJ5LmNuLWhhbmd6aG91LmFsaXl1bmNzLmNvbSI6IHsKCQkJImF1dGgiOiAiYTNWMFpYTnRZWEowYzJFNk1YRmhla0JYVTFnPSIKCQl9LAogICAgICAgICAgICAgICAgInN3ci5jbi1ub3J0aC00Lm15aHVhd2VpY2xvdWQuY29tIjogewogICAgICAgICAgICAgICAgICAgICAgICAiYXV0aCI6IlkyNHRibTl5ZEdndE5FQkxRekJDVFV0RVdVWlNPVnBhTUZsWlZrd3dWRG93TXpSbVl6UmpaamhqTVdRNE1tRmhZekk1WWpKallqTTVNakEzTm1Sak4yWmtNRFE0WXpjeVpEWTNabUl5TmpobVpETTJPVGhtTVRCbU5qVmtabVJqIgogICAgICAgICAgICAgICAgfQoJfSwKCSJIdHRwSGVhZGVycyI6IHsKCQkiVXNlci1BZ2VudCI6ICJEb2NrZXItQ2xpZW50LzE5LjAzLjEyIChsaW51eCkiCgl9Cn0=
+kind: Secret
+metadata:
+  name: registry-pull-secret
+  namespace: klog
+type: kubernetes.io/dockerconfigjson
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: logs.logcontroller.k8s.io
+spec:
+  group: logcontroller.k8s.io
+  version: v1alpha1
+  names:
+    kind: Log
+    plural: logs
+  scope: Namespaced
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: log-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+  - kind: ServiceAccount
+    name: default
+    namespace: klog
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: klog
+  namespace: klog
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: klog
+  template:
+    metadata:
+      labels:
+        app: klog
+    spec:
+      imagePullSecrets:
+        - name: registry-pull-secret
+      containers:
+        - command:
+            - /opt/log-controller
+          image: swr.cn-north-4.myhuaweicloud.com/cotte-internal/log:0.0.3-release
+          imagePullPolicy: Always
+          name: klog
+          ports:
+            - containerPort: 8080
+              name: klog
+              protocol: TCP
+          resources:
+            limits:
+              cpu: 500m
+              memory: 1200Mi
+            requests:
+              cpu: 50m
+              memory: 1000Mi
+      serviceAccountName: default
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: klog
+  namespace: klog
+spec:
+  ports:
+    - name: klog
+      port: 8080
+      protocol: TCP
+      targetPort: klog
+  selector:
+    app: klog

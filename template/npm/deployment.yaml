@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{.Name}}
+  annotations:
+    description: "{{.Describe}}"
+    gitUrl: "{{.GitUrl}}"
+    gatewayUrl: "{{.WebRealmName}}/{{.Name}}"
+    innerUrl: "http://{{.Name}}.{{.Namespace}}:80"
+spec:
+  selector:
+    matchLabels:
+      app: {{.Name}}
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: {{.Name}}
+    spec:
+      terminationGracePeriodSeconds: 5
+      imagePullSecrets:
+        - name: registry-pull-secret
+      containers:
+        - name: {{.Name}}
+          image: {{.Registry.Address}}/cotte-internal/{{.Namespace}}-{{.Name}}:__VERSION__
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 80
+              name: {{.Name}}
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: {{.Health}}
+              port: 80
+              scheme: HTTP
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 3
+          resources:
+            requests:
+              memory: "500Mi"
+              cpu: "100m"
+            limits:
+              memory: "600Mi"
+              cpu: "800m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{.Name}}
+  labels:
+    app: {{.Name}}
+spec:
+  ports:
+    - port: 80
+      name: {{.Name}}
+  selector:
+    app: {{.Name}}

@@ -3,6 +3,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: klog
+  namespace: klog
 spec:
   replicas: 1
   selector:
@@ -18,7 +19,7 @@ spec:
       containers:
       - command:
         - /opt/log-controller
-        image: registry.cn-hangzhou.aliyuncs.com/cotte-internal/log:0.0.2-xy
+        image: swr.cn-north-4.myhuaweicloud.com/cotte-internal/log:0.0.3-release
         imagePullPolicy: Always
         name: klog
         ports:

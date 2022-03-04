@@ -134,6 +134,7 @@ func (c *Controller) updateLogStatus(l *logv1alpha1.Log) error {
 	port := logCopy.Spec.Prometheus.Port
 	period := logCopy.Spec.Prometheus.Period
 	warning := logCopy.Spec.Warning
+	c.Log = logCopy
 	if period == 0 {
 		// default period value is 30 second
 		period = log.Period

@@ -34,6 +34,7 @@ import (
 	appsinformers "k8s.io/client-go/informers/apps/v1"
 	coreinformers "k8s.io/client-go/informers/core/v1"
 	appslisters "k8s.io/client-go/listers/apps/v1"
+	logv1alpha1 "k8s.io/log-controller/pkg/apis/logcontroller/v1alpha1"
 	clientset "k8s.io/log-controller/pkg/generated/clientset/versioned"
 	logscheme "k8s.io/log-controller/pkg/generated/clientset/versioned/scheme"
 	informers "k8s.io/log-controller/pkg/generated/informers/externalversions/logcontroller/v1alpha1"
@@ -122,6 +123,7 @@ type Controller struct {
 	Warnings   []*log.WarningList
 	logsLister listers.LogLister
 	logsSynced cache.InformerSynced
+	Log        *logv1alpha1.Log
 	// workqueue is a rate limited work queue. This is used to queue work to be
 	// processed instead of performing it as soon as a change happens. This
 	// means we can ensure we only process a fixed amount of resources at a

@@ -1,16 +1,16 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: xy-file
+  name: {{.Name}}
   annotations:
-    description: "安徽新远文件中心服务"
-    gitUrl: "http://git.ut.cameobespoke.com/bigdata/xy-file.git"
-    gatewayUrl: "https://gateway.xy.lync2m.com/xy-file"
-    innerUrl: "http://xy-file.bigdata:8100"
+    description: "{{.Describe}}"
+    gitUrl: "{{.GitUrl}}"
+    gatewayUrl: "{{.GatewayRealmName}}/{{.Name}}"
+    innerUrl: "http://{{.Name}}.{{.Namespace}}:{{.Port}}"
 spec:
   selector:
     matchLabels:
-      app: xy-file
+      app: {{.Name}}
   strategy:
     rollingUpdate:
       maxSurge: 1
@@ -19,19 +19,19 @@ spec:
   template:
     metadata:
       labels:
-        app: xy-file
+        app: {{.Name}}
     spec:
       terminationGracePeriodSeconds: 5
       imagePullSecrets:
       - name: registry-pull-secret
       containers:
-      - name: xy-file
-        image: swr.cn-north-4.myhuaweicloud.com/cotte-internal/bigdata-xy-file-prod:__VERSION__
+      - name: {{.Name}}
+        image: {{.Registry.Address}}/cotte-internal/{{.Namespace}}-{{.Name}}:__VERSION__
         imagePullPolicy: Always
         ports:
-        - containerPort: 8100
-          name: xy-file
-        command: ["java","-jar","/opt/microservice.jar","--spring.profiles.active=formal"]
+        - containerPort: {{.Port}}
+          name: {{.Name}}
+        command: ["java","-jar","/opt/microservice.jar","--spring.profiles.active={{.Env}}"]
         resources:
           limits:
             cpu: 1000m
@@ -41,16 +41,16 @@ spec:
             memory: 500Mi
         livenessProbe:
           httpGet:
-            path: /xy-file/actuator/health
-            port: 8100
+            path: {{.Health}}
+            port: {{.Port}}
           initialDelaySeconds: 60
           periodSeconds: 10
           timeoutSeconds: 3
         readinessProbe:
           failureThreshold: 3
           httpGet:
-            path: /xy-file/actuator/health
-            port: 8100
+            path: {{.Health}}
+            port: {{.Port}}
             scheme: HTTP
           initialDelaySeconds: 60
           periodSeconds: 10
@@ -60,11 +60,11 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: xy-file
+  name: {{.Name}}
 spec:
   ports:
-  - port: 8100
-    name: xy-file
-    targetPort: 8100
+  - port: {{.Port}}
+    name: {{.Name}}
+    targetPort: {{.Port}}
   selector:
-    app: xy-file
+    app: {{.Name}}

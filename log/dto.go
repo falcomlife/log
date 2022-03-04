@@ -118,27 +118,47 @@ type DeploymentBody struct {
 	Kind      string `json:"kind"`
 }
 
-type JavaGitlabCi struct {
-	Package   Package `json:"package"`
-	Release   Release `json:"release"`
-	Deploy    Deploy  `json:"deploy"`
-	Namespace string  `json:"namespace"`
-	name      string  `json:"name"`
+type Ci struct {
+	Package          Package   `json:"package"`
+	Release          Release   `json:"release"`
+	Deploy           Deploy    `json:"deploy"`
+	Registry         Registry  `json:"registry"`
+	Modules          []Modules `json:"modulues"`
+	Namespace        string    `json:"namespace"`
+	Name             string    `json:"name"`
+	Describe         string    `json:"describe"`
+	GitUrl           string    `json:"gitUrl"`
+	OnlyRefs         string    `json:"onlyRefs"`
+	Env              string    `json:"env"`
+	Port             string    `json:port`
+	Health           string    `json:health`
+	WebRealmName     string    `json:"webRealmname"`
+	GatewayRealmName string    `json:"gatewayRealmName"`
+}
+
+type Modules struct {
+	Name           string `json:"name"`
+	Describe       string `json:"describe"`
+	ArtifactsPaths string `json:"artifactsPaths"`
+	Port           string `json:port`
+	Health         string `json:health`
 }
 
 type Package struct {
 	Image          string `json:"image"`
-	OnlyRefs       string `json:"onlyRefs"`
 	ArtifactsPaths string `json:"artifactsPaths"`
 }
 
 type Release struct {
-	Image        string `json:"image"`
-	Dependencies string `json:"dependencies"`
-	OnlyRefs     string `json:"onlyRefs"`
+	Image string `json:"image"`
 }
 
 type Deploy struct {
-	Image    string `json:"image"`
-	OnlyRefs string `json:"onlyRefs"`
+	Image string `json:"image"`
+}
+
+type Registry struct {
+	Address  string `json:"address"`
+	Username string `json:"username"`
+	Password string `json:"password"`
 }

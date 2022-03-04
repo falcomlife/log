@@ -105,6 +105,8 @@ func beegoInit() {
 		case <-time.After(3 * time.Second):
 			if controller != nil {
 				logs.SetLogger(logs.AdapterConsole)
+				beego.BConfig.WebConfig.AutoRender = false
+				beego.BConfig.CopyRequestBody = true
 				beego.InsertFilter("*", beego.BeforeRouter, cors.Allow(&cors.Options{AllowAllOrigins: true, AllowMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}, AllowHeaders: []string{"Origin", "Authorization", "Access-Control-Allow-Origin", "Access-Control-Allow-Headers", "Content-Type"}, ExposeHeaders: []string{"Content-Length", "Access-Control-Allow-Origin", "Access-Control-Allow-Headers", "Content-Type"}, AllowCredentials: true}))
 				beego.SetStaticPath("/", "web")
 				beego.Router("/nodes", &api.NodeController{Ctl: controller})

@@ -2,7 +2,7 @@
 # Version: 1.0
 # Author: sora
 
-FROM swr.cn-north-4.myhuaweicloud.com/cotte-internal/centos7-tools-jdk8-git:0.0.3
+FROM {{.Registry.Address}}/cotte-internal/centos7-tools-jdk8-git:0.0.3
 ARG CONTAINERNAME
 WORKDIR /opt
 #copy config to container

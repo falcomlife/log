@@ -19,52 +19,41 @@
     <select />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="a816a10b-f9b5-42b2-96b5-20ea213ecbde" name="Default Changelist" comment="docs: dto&#10;dto">
-      <change afterPath="$PROJECT_DIR$/api/types.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/conf/app.conf" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/datasource/mysql.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/datasource/types.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/db/init.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/db/manager.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/db/types.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/deploy/deployment.yaml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/deploy/pv.yaml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/deploy/pvc.yaml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/template/.gitlab-ci.template" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/template/Dockerfile.template" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/template/deployment.template" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/test.kubeconfig" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/test/singel_test.go" afterDir="false" />
+    <list default="true" id="08aaaee9-3500-46b7-8539-2268b5c53eba" name="Default Changelist" comment="">
+      <change afterPath="$PROJECT_DIR$/common/zip.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deploy/init.yaml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deploy/log-huawei.yaml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deploy/log-mdy.yaml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deploy/log-test.yaml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deploy/log-xy.yaml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/template/java/.gitlab-ci.yml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/template/javaMul/.gitlab-ci.yml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/template/javaMul/Dockerfile" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/template/javaMul/deployment.yaml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/template/npm/.gitlab-ci.yml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/template/npm/Dockerfile" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/template/npm/deployment.yaml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/template/npm/nginx.conf" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/log.iml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/modules.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Dockerfile" beforeDir="false" afterPath="$PROJECT_DIR$/Dockerfile" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/api/controller.go" beforeDir="false" afterPath="$PROJECT_DIR$/api/controller.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/build.sh" beforeDir="false" afterPath="$PROJECT_DIR$/build.sh" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/common/types.go" beforeDir="false" afterPath="$PROJECT_DIR$/common/types.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/crd-status-subresource.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/deploy/crd-status-subresource.yaml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/crd-validation.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/deploy/crd-validation.yaml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/crd.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/deploy/crd.yaml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/deployment.yaml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/log.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/deploy/log.yaml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/rbac.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/deploy/rbac.yaml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/svc.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/deploy/svc.yaml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/vsvc.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/deploy/vsvc.yaml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/controller/controller.go" beforeDir="false" afterPath="$PROJECT_DIR$/controller/controller.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/controller/process.go" beforeDir="false" afterPath="$PROJECT_DIR$/controller/process.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/controller/task.go" beforeDir="false" afterPath="$PROJECT_DIR$/controller/task.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deploy/deployment.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/deploy/deployment.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deploy/log.yaml" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/go.mod" beforeDir="false" afterPath="$PROJECT_DIR$/go.mod" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/go.sum" beforeDir="false" afterPath="$PROJECT_DIR$/go.sum" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/log/dto.go" beforeDir="false" afterPath="$PROJECT_DIR$/log/dto.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/log/prometheus.go" beforeDir="false" afterPath="$PROJECT_DIR$/log/prometheus.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/log/types.go" beforeDir="false" afterPath="$PROJECT_DIR$/log/types.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/main.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/message.template" beforeDir="false" afterPath="$PROJECT_DIR$/template/message.template" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/web/css/app.886552d8.css" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web/css/chunk-vendors.84bb20f7.css" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web/fonts/element-icons.535877f5.woff" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web/fonts/element-icons.732389de.ttf" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web/index.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web/js/chunk-vendors.b6d17a83.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web/js/chunk-vendors.b6d17a83.js.map" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/apis/logcontroller/v1alpha1/types.go" beforeDir="false" afterPath="$PROJECT_DIR$/pkg/apis/logcontroller/v1alpha1/types.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/apis/logcontroller/v1alpha1/zz_generated.deepcopy.go" beforeDir="false" afterPath="$PROJECT_DIR$/pkg/apis/logcontroller/v1alpha1/zz_generated.deepcopy.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/template/.gitlab-ci.template" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/template/Dockerfile.template" beforeDir="false" afterPath="$PROJECT_DIR$/template/java/Dockerfile" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/template/deployment.template" beforeDir="false" afterPath="$PROJECT_DIR$/template/java/deployment.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/test.kubeconfig" beforeDir="false" afterPath="$PROJECT_DIR$/test.kubeconfig" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -84,20 +73,15 @@
   </component>
   <component name="GoLibraries">
     <option name="indexEntireGoPath" value="false" />
-    <option name="urls">
-      <list>
-        <option value="file://$PROJECT_DIR$/lib" />
-      </list>
-    </option>
   </component>
-  <component name="ProjectId" id="1l092JM49mYpwjPrQKMMDVWwsmV" />
+  <component name="ProjectId" id="1vNWX6GLAAyjzMdZHfS31Rj7ATy" />
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
   <component name="PropertiesComponent">
     <property name="DefaultGoTemplateProperty" value="Go File" />
-    <property name="GO_FMT" value="true" />
     <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
     <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
     <property name="WebServerToolWindowFactoryState" value="false" />
@@ -105,9 +89,9 @@
     <property name="configurable.Module.GOPATH.is.expanded" value="true" />
     <property name="configurable.Project.GOPATH.is.expanded" value="true" />
     <property name="go.import.settings.migrated" value="true" />
-    <property name="go.sdk.automatically.set" value="true" />
     <property name="go.tried.to.enable.integration.vgo.integrator" value="true" />
-    <property name="last_opened_file_path" value="$PROJECT_DIR$/web" />
+    <property name="go.vendoring.notification.had.been.shown" value="true" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/deploy" />
     <property name="node.js.detected.package.eslint" value="true" />
     <property name="node.js.detected.package.tslint" value="true" />
     <property name="node.js.path.for.package.eslint" value="project" />
@@ -116,112 +100,38 @@
     <property name="node.js.selected.package.tslint" value="(autodetect)" />
     <property name="nodejs_package_manager_path" value="npm" />
     <property name="settings.editor.selected.configurable" value="go.vgo" />
-    <property name="ts.external.directory.path" value="$APPLICATION_HOME_DIR$/plugins/JavaScriptLanguage/jsLanguageServicesImpl/external" />
   </component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
-      <recent name="$PROJECT_DIR$/web" />
-      <recent name="$PROJECT_DIR$/web/ai/result/2021-07-28" />
-      <recent name="$PROJECT_DIR$" />
-      <recent name="$PROJECT_DIR$/log" />
+      <recent name="$PROJECT_DIR$/deploy" />
+      <recent name="$PROJECT_DIR$/template/javaMul" />
+      <recent name="$PROJECT_DIR$/template/npm" />
+      <recent name="$PROJECT_DIR$/vendor/k8s.io" />
+      <recent name="$PROJECT_DIR$/lib/pkg/mod/k8s.io" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
-      <recent name="$PROJECT_DIR$/template" />
-      <recent name="$PROJECT_DIR$/conf" />
-      <recent name="$PROJECT_DIR$/db" />
-      <recent name="$PROJECT_DIR$/lib" />
-      <recent name="$PROJECT_DIR$/artifacts" />
+      <recent name="$PROJECT_DIR$/template/java" />
+      <recent name="$PROJECT_DIR$/web" />
     </key>
   </component>
-  <component name="RunManager" selected="Go Build.go build main.go">
-    <configuration name="go build main.go" type="GoApplicationRunConfiguration" factoryName="Go Application" temporary="true" nameIsGenerated="true">
-      <module name="log" />
+  <component name="RunManager">
+    <configuration name="go build k8s.io/log-controller" type="GoApplicationRunConfiguration" factoryName="Go Application" temporary="true" nameIsGenerated="true">
+      <module name="klog" />
       <working_directory value="$PROJECT_DIR$" />
-      <envs>
-        <env name="LOG.ENV" value="DEV" />
-      </envs>
-      <kind value="FILE" />
+      <kind value="PACKAGE" />
       <filePath value="$PROJECT_DIR$/main.go" />
       <package value="k8s.io/log-controller" />
       <directory value="$PROJECT_DIR$/" />
       <method v="2" />
     </configuration>
-    <configuration name="TestHelloWorld in k8s.io/log-controller/log" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
-      <module name="log" />
-      <working_directory value="$PROJECT_DIR$/log" />
-      <framework value="gotest" />
-      <kind value="PACKAGE" />
-      <package value="k8s.io/log-controller/log" />
-      <directory value="$PROJECT_DIR$/" />
-      <filePath value="$PROJECT_DIR$/" />
-      <pattern value="^TestHelloWorld$" />
-      <method v="2" />
-    </configuration>
-    <configuration name="TestSingle in k8s.io/log-controller/test" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
-      <module name="log" />
-      <working_directory value="$PROJECT_DIR$/test" />
-      <framework value="gotest" />
-      <kind value="PACKAGE" />
-      <package value="k8s.io/log-controller/test" />
-      <directory value="$PROJECT_DIR$/" />
-      <filePath value="$PROJECT_DIR$/" />
-      <pattern value="^TestSingle$" />
-      <method v="2" />
-    </configuration>
-    <configuration name="Test_prometheus_mem in k8s.io/log-controller/log" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
-      <module name="log" />
-      <working_directory value="$PROJECT_DIR$/log" />
-      <framework value="gotest" />
-      <kind value="PACKAGE" />
-      <package value="k8s.io/log-controller/log" />
-      <directory value="$PROJECT_DIR$/" />
-      <filePath value="$PROJECT_DIR$/" />
-      <pattern value="^Test_prometheus_mem$" />
-      <method v="2" />
-    </configuration>
-    <configuration name="singel_test.go" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
-      <module name="log" />
-      <working_directory value="$PROJECT_DIR$/test" />
-      <framework value="gotest" />
-      <kind value="FILE" />
-      <package value="k8s.io/log-controller" />
-      <directory value="$PROJECT_DIR$/" />
-      <filePath value="$PROJECT_DIR$/test/singel_test.go" />
-      <method v="2" />
-    </configuration>
-    <list>
-      <item itemvalue="Go Build.go build main.go" />
-      <item itemvalue="Go Test.TestHelloWorld in k8s.io/log-controller/log" />
-      <item itemvalue="Go Test.TestSingle in k8s.io/log-controller/test" />
-      <item itemvalue="Go Test.Test_prometheus_mem in k8s.io/log-controller/log" />
-      <item itemvalue="Go Test.singel_test.go" />
-    </list>
     <recent_temporary>
       <list>
-        <item itemvalue="Go Build.go build main.go" />
-        <item itemvalue="Go Test.TestSingle in k8s.io/log-controller/test" />
-        <item itemvalue="Go Test.singel_test.go" />
-        <item itemvalue="Go Test.TestHelloWorld in k8s.io/log-controller/log" />
-        <item itemvalue="Go Test.Test_prometheus_mem in k8s.io/log-controller/log" />
+        <item itemvalue="Go Build.go build k8s.io/log-controller" />
       </list>
     </recent_temporary>
   </component>
-  <component name="SpellCheckerSettings" BundledDictionaries="0" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" Dictionaries="0" CorrectionsLimit="5" DefaultDictionary="application-level" UseSingleDictionary="true" />
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="2" />
-  </component>
-  <component name="UnknownFeatures">
-    <option featureType="com.intellij.fileTypeFactory" implementationName="*.template" />
-  </component>
-  <component name="Vcs.Log.History.Properties">
-    <option name="COLUMN_ORDER">
-      <list>
-        <option value="0" />
-        <option value="2" />
-        <option value="3" />
-        <option value="1" />
-      </list>
-    </option>
   </component>
   <component name="Vcs.Log.Tabs.Properties">
     <option name="TAB_STATES">
@@ -235,110 +145,73 @@
     </option>
     <option name="oldMeFiltersMigrated" value="true" />
   </component>
-  <component name="VcsManagerConfiguration">
-    <MESSAGE value="feat: web&#10;web" />
-    <MESSAGE value="feat: extremePoint&#10;get cpu/memory extremePoint and send warning to wechat" />
-    <MESSAGE value="feat: warngings&#10;warnings" />
-    <MESSAGE value="feat: change map&#10;use sync map" />
-    <MESSAGE value="feat: fliter for warnings&#10;fliter for warnings" />
-    <MESSAGE value="bug: sample data&#10;fix bug for sample data" />
-    <MESSAGE value="feat: forecast when memory full and send warning&#10;forecast when memory full and send warning" />
-    <MESSAGE value="feat: add a new function&#10;Judge memory exterme point median with realy value, and send warning message" />
-    <MESSAGE value="docs: add notes for functions&#10;add notes for functions" />
-    <MESSAGE value="feat: warning analysis&#10;get the pod resource increase when a warning come into being" />
-    <MESSAGE value="feat: warning analysis&#10;nodes' disk warning" />
-    <MESSAGE value="bug: clean task&#10;CpuVolatility and MemVolatility value is zero after clean task run" />
-    <MESSAGE value="bug: clean task&#10;CpuVolatility and MemVolatility value is always zero after clean task run" />
-    <MESSAGE value="bug: clean task&#10;use delete function to clean node information in queue,and if pod's min memory is zero, put the new memory value in it." />
-    <MESSAGE value="bug: pod min memory&#10;if pod's lasted memory is zero, put the new memory value in it." />
-    <MESSAGE value="docs: dto&#10;dto" />
-    <option name="LAST_COMMIT_MESSAGE" value="docs: dto&#10;dto" />
-  </component>
   <component name="VgoProject">
     <integration-enabled>true</integration-enabled>
   </component>
   <component name="WindowStateProjectService">
-    <state x="418" y="217" key="#com.intellij.execution.impl.EditConfigurationsDialog" timestamp="1644891751207">
+    <state x="418" y="217" key="#com.intellij.execution.impl.EditConfigurationsDialog" timestamp="1646032026249">
       <screen x="0" y="38" width="1920" height="1042" />
     </state>
-    <state x="418" y="217" key="#com.intellij.execution.impl.EditConfigurationsDialog/0.38.1920.1042@0.38.1920.1042" timestamp="1644891751207" />
-    <state x="641" y="352" width="683" height="414" key="#com.intellij.fileTypes.FileTypeChooser" timestamp="1645600346394">
+    <state x="418" y="217" key="#com.intellij.execution.impl.EditConfigurationsDialog/0.38.1920.1042@0.38.1920.1042" timestamp="1646032026249" />
+    <state x="1145" y="292" key="#xdebugger.evaluate" timestamp="1646298435146">
       <screen x="0" y="38" width="1920" height="1042" />
     </state>
-    <state x="641" y="352" width="683" height="414" key="#com.intellij.fileTypes.FileTypeChooser/0.38.1920.1042@0.38.1920.1042" timestamp="1645600346394" />
-    <state x="718" y="295" key="#xdebugger.evaluate" timestamp="1645174624918">
+    <state x="1145" y="292" key="#xdebugger.evaluate/0.38.1920.1042@0.38.1920.1042" timestamp="1646298435146" />
+    <state width="1031" height="608" key="DebuggerActiveHint" timestamp="1646287499708">
       <screen x="0" y="38" width="1920" height="1042" />
     </state>
-    <state x="718" y="295" key="#xdebugger.evaluate/0.38.1920.1042@0.38.1920.1042" timestamp="1645174624918" />
-    <state width="846" height="608" key="DebuggerActiveHint" timestamp="1645259867866">
+    <state width="1031" height="608" key="DebuggerActiveHint/0.38.1920.1042@0.38.1920.1042" timestamp="1646287499708" />
+    <state x="759" y="345" width="424" height="484" key="FileChooserDialogImpl" timestamp="1646097709200">
       <screen x="0" y="38" width="1920" height="1042" />
     </state>
-    <state width="846" height="608" key="DebuggerActiveHint/0.38.1920.1042@0.38.1920.1042" timestamp="1645259867866" />
-    <state x="845" y="407" width="218" height="303" key="EnvironmentVariablesDialog" timestamp="1644805119309">
+    <state x="759" y="345" width="424" height="484" key="FileChooserDialogImpl/0.38.1920.1042@0.38.1920.1042" timestamp="1646097709200" />
+    <state width="1866" height="268" key="GridCell.Tab.0.bottom" timestamp="1646298898999">
       <screen x="0" y="38" width="1920" height="1042" />
     </state>
-    <state x="845" y="407" width="218" height="303" key="EnvironmentVariablesDialog/0.38.1920.1042@0.38.1920.1042" timestamp="1644805119309" />
-    <state x="743" y="317" width="424" height="484" key="FileChooserDialogImpl" timestamp="1644805115379">
+    <state width="1866" height="268" key="GridCell.Tab.0.bottom/0.38.1920.1042@0.38.1920.1042" timestamp="1646298898999" />
+    <state width="1866" height="268" key="GridCell.Tab.0.center" timestamp="1646298898999">
       <screen x="0" y="38" width="1920" height="1042" />
     </state>
-    <state x="743" y="317" width="424" height="484" key="FileChooserDialogImpl/0.38.1920.1042@0.38.1920.1042" timestamp="1644805115379" />
-    <state width="1866" height="48" key="GridCell.Tab.0.bottom" timestamp="1645607066394">
+    <state width="1866" height="268" key="GridCell.Tab.0.center/0.38.1920.1042@0.38.1920.1042" timestamp="1646298898999" />
+    <state width="1866" height="268" key="GridCell.Tab.0.left" timestamp="1646298898999">
       <screen x="0" y="38" width="1920" height="1042" />
     </state>
-    <state width="1866" height="48" key="GridCell.Tab.0.bottom/0.38.1920.1042@0.38.1920.1042" timestamp="1645607066394" />
-    <state width="1866" height="48" key="GridCell.Tab.0.center" timestamp="1645607066394">
+    <state width="1866" height="268" key="GridCell.Tab.0.left/0.38.1920.1042@0.38.1920.1042" timestamp="1646298898999" />
+    <state width="1866" height="268" key="GridCell.Tab.0.right" timestamp="1646298898999">
       <screen x="0" y="38" width="1920" height="1042" />
     </state>
-    <state width="1866" height="48" key="GridCell.Tab.0.center/0.38.1920.1042@0.38.1920.1042" timestamp="1645607066394" />
-    <state width="1866" height="48" key="GridCell.Tab.0.left" timestamp="1645607066393">
+    <state width="1866" height="268" key="GridCell.Tab.0.right/0.38.1920.1042@0.38.1920.1042" timestamp="1646298898999" />
+    <state width="1866" height="299" key="GridCell.Tab.1.bottom" timestamp="1646298898957">
       <screen x="0" y="38" width="1920" height="1042" />
     </state>
-    <state width="1866" height="48" key="GridCell.Tab.0.left/0.38.1920.1042@0.38.1920.1042" timestamp="1645607066393" />
-    <state width="1866" height="48" key="GridCell.Tab.0.right" timestamp="1645607066394">
+    <state width="1866" height="299" key="GridCell.Tab.1.bottom/0.38.1920.1042@0.38.1920.1042" timestamp="1646298898957" />
+    <state width="1866" height="299" key="GridCell.Tab.1.center" timestamp="1646298898956">
       <screen x="0" y="38" width="1920" height="1042" />
     </state>
-    <state width="1866" height="48" key="GridCell.Tab.0.right/0.38.1920.1042@0.38.1920.1042" timestamp="1645607066394" />
-    <state width="1866" height="48" key="GridCell.Tab.1.bottom" timestamp="1645607066395">
+    <state width="1866" height="299" key="GridCell.Tab.1.center/0.38.1920.1042@0.38.1920.1042" timestamp="1646298898956" />
+    <state width="1866" height="299" key="GridCell.Tab.1.left" timestamp="1646298898956">
       <screen x="0" y="38" width="1920" height="1042" />
     </state>
-    <state width="1866" height="48" key="GridCell.Tab.1.bottom/0.38.1920.1042@0.38.1920.1042" timestamp="1645607066395" />
-    <state width="1866" height="48" key="GridCell.Tab.1.center" timestamp="1645607066394">
+    <state width="1866" height="299" key="GridCell.Tab.1.left/0.38.1920.1042@0.38.1920.1042" timestamp="1646298898956" />
+    <state width="1866" height="299" key="GridCell.Tab.1.right" timestamp="1646298898957">
       <screen x="0" y="38" width="1920" height="1042" />
     </state>
-    <state width="1866" height="48" key="GridCell.Tab.1.center/0.38.1920.1042@0.38.1920.1042" timestamp="1645607066394" />
-    <state width="1866" height="48" key="GridCell.Tab.1.left" timestamp="1645607066394">
+    <state width="1866" height="299" key="GridCell.Tab.1.right/0.38.1920.1042@0.38.1920.1042" timestamp="1646298898957" />
+    <state x="441" y="194" key="SettingsEditor" timestamp="1646098105580">
       <screen x="0" y="38" width="1920" height="1042" />
     </state>
-    <state width="1866" height="48" key="GridCell.Tab.1.left/0.38.1920.1042@0.38.1920.1042" timestamp="1645607066394" />
-    <state width="1866" height="48" key="GridCell.Tab.1.right" timestamp="1645607066395">
+    <state x="441" y="194" key="SettingsEditor/0.38.1920.1042@0.38.1920.1042" timestamp="1646098105580" />
+    <state width="960" height="521" key="XDebugger.FullValuePopup" timestamp="1645756212324">
       <screen x="0" y="38" width="1920" height="1042" />
     </state>
-    <state width="1866" height="48" key="GridCell.Tab.1.right/0.38.1920.1042@0.38.1920.1042" timestamp="1645607066395" />
-    <state x="441" y="194" key="SettingsEditor" timestamp="1644805122839">
+    <state width="960" height="521" key="XDebugger.FullValuePopup/0.38.1920.1042@0.38.1920.1042" timestamp="1645756212324" />
+    <state x="652" y="245" width="788" height="628" key="find.popup" timestamp="1646034526936">
       <screen x="0" y="38" width="1920" height="1042" />
     </state>
-    <state x="441" y="194" key="SettingsEditor/0.38.1920.1042@0.38.1920.1042" timestamp="1644805122839" />
-    <state width="960" height="521" key="XDebugger.FullValuePopup" timestamp="1645087855928">
+    <state x="652" y="245" width="788" height="628" key="find.popup/0.38.1920.1042@0.38.1920.1042" timestamp="1646034526936" />
+    <state x="624" y="205" width="670" height="676" key="search.everywhere.popup" timestamp="1646102550859">
       <screen x="0" y="38" width="1920" height="1042" />
     </state>
-    <state width="960" height="521" key="XDebugger.FullValuePopup/0.38.1920.1042@0.38.1920.1042" timestamp="1645087855928" />
-    <state x="652" y="245" width="615" height="628" key="find.popup" timestamp="1645599720675">
-      <screen x="0" y="38" width="1920" height="1042" />
-    </state>
-    <state x="652" y="245" width="615" height="628" key="find.popup/0.38.1920.1042@0.38.1920.1042" timestamp="1645599720675" />
-  </component>
-  <component name="XDebuggerManager">
-    <breakpoint-manager>
-      <breakpoints>
-        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
-          <url>file://$PROJECT_DIR$/api/controller.go</url>
-          <line>5</line>
-          <option name="timeStamp" value="1" />
-        </line-breakpoint>
-      </breakpoints>
-      <default-breakpoints>
-        <breakpoint type="DlvErrorBreakpoint" />
-      </default-breakpoints>
-    </breakpoint-manager>
+    <state x="624" y="205" width="670" height="676" key="search.everywhere.popup/0.38.1920.1042@0.38.1920.1042" timestamp="1646102550859" />
   </component>
 </project>

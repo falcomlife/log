@@ -1,0 +1,42 @@
+stages:
+- package
+- release
+- deploy
+#--------------------test环境----------------------
+#打包
+package-{{.Name}}-{{.Env}}:
+  image: {{.Package.Image}}
+  stage: package
+  only:
+    refs:
+      - {{.OnlyRefs}}
+  script:
+    - mvn clean package -Dmave.test.skip=true
+  artifacts:
+    paths:
+      - {{.Package.ArtifactsPaths}}
+#生成镜像
+release-{{.Name}}-{{.Env}}:
+  image: {{.Release.Image}}
+  stage: release
+  dependencies:
+    - package-{{.Name}}-{{.Env}}
+  only:
+    refs:
+      - {{.OnlyRefs}}
+  before_script:
+    - docker login -u {{.Registry.Username}} -p {{.Registry.Password}} {{.Registry.Address}}
+  script:
+    - cp {{.Package.ArtifactsPaths}} .devops/microservice.jar
+    - cd .devops/
+    - docker build -t {{.Registry.Address}}/cotte-internal/{{.Namespace}}-{{.Name}}:$CI_PIPELINE_ID .
+    - docker push {{.Registry.Address}}/cotte-internal/{{.Namespace}}-{{.Name}}:$CI_PIPELINE_ID
+#部署
+deploy-{{.Name}}-{{.Env}}:
+  image: {{.Deploy.Image}}
+  stage: deploy
+  only:
+    refs:
+      - {{.OnlyRefs}}
+  script:
+  - deploy.sh --deploymentName={{.Name}} --namespace={{.Namespace}} --imageName={{.Registry.Address}}/cotte-internal/{{.Namespace}}-{{.Name}} --imageTag=$CI_PIPELINE_ID --yamlDir=.devops/yaml/{{.Env}}/deployment.yaml --containerName={{.Name}}

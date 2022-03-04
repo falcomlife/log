@@ -34,6 +34,7 @@ type Log struct {
 // LogSpec is the spec for a Log resource
 type LogSpec struct {
 	Prometheus Prometheus `json:"prometheus"`
+	Template   Template   `json:"template"`
 	Warning    Warning    `json:"warning"`
 }
 
@@ -89,6 +90,32 @@ type Ememory struct {
 	WarningValue int64 `json:"warningValue"`
 }
 
+type Template struct {
+	Registry         Registry `json:"registry"`
+	Env              string   `json:"env"`
+	WebRealmName     string   `json:"webRealmname"`
+	GatewayRealmName string   `json:"gatewayRealmName"`
+	Address          string   `json:"address"`
+	Username         string   `json:"username"`
+	Password         string   `json:"password"`
+}
+
+type Registry struct {
+	Java Java `json:"java"`
+	Npm  Npm  `json:"npm"`
+}
+
+type Java struct {
+	PackageImage string `json:"packageImage"`
+	ReleaseImage string `json:"releaseImage"`
+	DeployImage  string `json:"deployImage"`
+}
+type Npm struct {
+	PackageImage string `json:"packageImage"`
+	ReleaseImage string `json:"releaseImage"`
+	DeployImage  string `json:"deployImage"`
+}
+
 // LogStatus is the status for a Log resource
 type LogStatus struct {
 	AvailableReplicas int32 `json:"availableReplicas"`
@@ -100,6 +127,5 @@ type LogStatus struct {
 type LogList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata"`
-
-	Items []Log `json:"items"`
+	Items           []Log `json:"items"`
 }

@@ -9,6 +9,9 @@ import (
 	"encoding/json"
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/logs"
+	simplejson "github.com/bitly/go-simplejson"
+	"github.com/go-basic/uuid"
+	"html/template"
 	"io"
 	"io/ioutil"
 	v1 "k8s.io/api/apps/v1"
@@ -19,8 +22,10 @@ import (
 	controller2 "k8s.io/log-controller/controller"
 	"k8s.io/log-controller/log"
 	"k8s.io/utils/integer"
+	"os"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -64,9 +69,11 @@ func (this *DeploymentController) Get() {
 }
 
 func deployment_list(this *DeploymentController) string {
+	logs.Info("start :", time.Now().Unix())
 	var list = make([]interface{}, 0)
 	namespaces, err := this.Ctl.Kubeclientset.CoreV1().Namespaces().List(context.Background(), metav1.ListOptions{})
 	businessNamespace := make(map[string]bool)
+	logs.Info("list namespace :", time.Now().Unix())
 	for _, namespace := range namespaces.Items {
 		value, ok := namespace.Labels["role"]
 		if ok && value == "business" {
@@ -74,12 +81,42 @@ func deployment_list(this *DeploymentController) string {
 		}
 	}
 	if err != nil {
-		print(err)
+		logs.Error(err.Error())
+	}
+	logs.Info("get bussiness namespace :", time.Now().Unix())
+	pod_replicaSet_map := make(map[types.UID]map[string]interface{})
+	if pods, err := this.Ctl.Kubeclientset.CoreV1().Pods("").List(context.Background(), metav1.ListOptions{}); err != nil {
+		logs.Error(err.Error())
+		return err.Error()
+	} else {
+		if replicaSets, err := this.Ctl.Kubeclientset.AppsV1().ReplicaSets("").List(context.Background(), metav1.ListOptions{}); err != nil {
+			logs.Error(err.Error())
+			return err.Error()
+		} else {
+			for _, pod := range pods.Items {
+				for _, ownerRc := range pod.OwnerReferences {
+					for _, replicaSet := range replicaSets.Items {
+						if ownerRc.UID == replicaSet.UID {
+							_, ok := pod_replicaSet_map[replicaSet.UID]
+							if !ok {
+								pod_replicaSet_map[replicaSet.UID] = make(map[string]interface{})
+								pod_replicaSet_map[replicaSet.UID]["replicaSet"] = replicaSet
+								pod_replicaSet_map[replicaSet.UID]["pods"] = make([]corev1.Pod, 0)
+								pod_replicaSet_map[replicaSet.UID]["pods"] = append((pod_replicaSet_map[replicaSet.UID]["pods"]).([]corev1.Pod), pod)
+							} else {
+								pod_replicaSet_map[replicaSet.UID]["pods"] = append((pod_replicaSet_map[replicaSet.UID]["pods"]).([]corev1.Pod), pod)
+							}
+						}
+					}
+				}
+			}
+		}
 	}
 	this.Ctl.DeploymentQueue.Range(func(k, v interface{}) bool {
 		dep, _ := v.(*v1.Deployment)
 		if businessNamespace[dep.Namespace] {
-			podNames, startTime, duration, restartTimes, podStatus := this.getPodsByDeployment(dep.UID, dep.Namespace)
+			logs.Info("every time get pod by deployment :", time.Now().Unix())
+			podNames, startTime, duration, restartTimes, podStatus := this.getPodsByDeployment(dep.UID, dep.Namespace, pod_replicaSet_map)
 			list = append(list, log.Deployment{
 				Name:         dep.Name,
 				Namespace:    dep.Namespace,
@@ -99,6 +136,7 @@ func deployment_list(this *DeploymentController) string {
 		}
 		return true
 	})
+	logs.Info("sort :", time.Now().Unix())
 	if len(list) != 0 {
 		sort.SliceStable(list, func(i, j int) bool {
 			n1, _ := list[i].(log.Deployment)
@@ -107,6 +145,7 @@ func deployment_list(this *DeploymentController) string {
 		})
 	}
 	b, err := json.Marshal(list)
+	logs.Info("finish :", time.Now().Unix())
 	if err != nil {
 		return err.Error()
 	} else {
@@ -192,26 +231,20 @@ func (this *DeploymentController) packageForServiceInfo(event corev1.Event) log.
 	}
 }
 
-func (this *DeploymentController) getPodsByDeployment(deploymentUid types.UID, namespace string) ([]string, []string, []string, []int, []string) {
-	pods, err := this.Ctl.Kubeclientset.CoreV1().Pods(namespace).List(context.Background(), metav1.ListOptions{})
-	if err != nil {
-		print(err)
-	}
+func (this *DeploymentController) getPodsByDeployment(deploymentUid types.UID, namespace string, pod_replicaSet_map map[types.UID]map[string]interface{}) ([]string, []string, []string, []int, []string) {
+
 	podNames := make([]string, 0)
 	podStatus := make([]string, 0)
 	startTime := make([]string, 0)
 	duration := make([]string, 0)
 	restartTimes := make([]int, 0)
 
-	for _, pod := range pods.Items {
-		for _, ownerRc := range pod.OwnerReferences {
-			replicaSet, err := this.Ctl.Kubeclientset.AppsV1().ReplicaSets(namespace).Get(context.Background(), ownerRc.Name, metav1.GetOptions{})
-			if err != nil {
-				print(err)
-				return nil, nil, nil, nil, nil
-			}
-			for _, ownerDep := range replicaSet.OwnerReferences {
-				if ownerDep.UID == deploymentUid {
+	for _, v := range pod_replicaSet_map {
+		var replicaSet v1.ReplicaSet = v["replicaSet"].(v1.ReplicaSet)
+		var pods []corev1.Pod = v["pods"].([]corev1.Pod)
+		for _, ownerDep := range replicaSet.OwnerReferences {
+			if ownerDep.UID == deploymentUid {
+				for _, pod := range pods {
 					podNames = append(podNames, pod.Name)
 					podStatus = append(podStatus, string(pod.Status.Phase))
 					if pod.Status.StartTime != nil {
@@ -284,6 +317,7 @@ func deployment_log(this *DeploymentController, name string, namespace string) s
 	}
 }
 
+// restart or rollback servcice
 func (this *DeploymentController) Post() {
 	input := log.DeploymentBody{}
 	if err := json.Unmarshal(this.Ctx.Input.RequestBody, &input); err != nil {
@@ -370,6 +404,276 @@ func (this *DeploymentController) rollback(input log.DeploymentBody) string {
 	return "success"
 }
 
+func (this *DeploymentController) Put() {
+	action := this.GetString("action")
+	var result string
+	switch action {
+	case "java":
+		result = this.add_java()
+	case "javaMul":
+		result = this.add_javaMul()
+	case "npm":
+		result = this.add_npm()
+	}
+	this.Ctx.WriteString(result)
+}
+
+func (this *DeploymentController) add_java() string {
+	input := log.Ci{}
+	if js, err := simplejson.NewJson(this.Ctx.Input.RequestBody); err != nil {
+		logs.Error(err.Error())
+		return err.Error()
+	} else {
+		input.Name = js.Get("name").MustString()
+		input.Namespace = js.Get("namespace").MustString()
+		input.Describe = js.Get("describe").MustString()
+		input.OnlyRefs = js.Get("onlyRefs").MustString()
+		input.GitUrl = js.Get("gitUrl").MustString()
+		input.Health = js.Get("health").MustString()
+		input.Port = js.Get("port").MustString()
+		input.GatewayRealmName = this.Ctl.Log.Spec.Template.GatewayRealmName
+		input.WebRealmName = this.Ctl.Log.Spec.Template.WebRealmName
+		input.Registry = log.Registry{
+			Username: this.Ctl.Log.Spec.Template.Username,
+			Password: this.Ctl.Log.Spec.Template.Password,
+			Address:  this.Ctl.Log.Spec.Template.Address,
+		}
+		input.Env = this.Ctl.Log.Spec.Template.Env
+		input.Package = log.Package{
+			Image:          this.Ctl.Log.Spec.Template.Registry.Java.PackageImage,
+			ArtifactsPaths: js.Get("artifactsPaths").MustString(),
+		}
+		input.Release = log.Release{
+			Image: this.Ctl.Log.Spec.Template.Registry.Java.ReleaseImage,
+		}
+		input.Deploy = log.Deploy{
+			Image: this.Ctl.Log.Spec.Template.Registry.Java.DeployImage,
+		}
+		uid := uuid.New()
+		if err := os.MkdirAll(uid+"/.devops/yaml/"+this.Ctl.Log.Spec.Template.Env, os.ModePerm); err != nil {
+			logs.Error(err.Error())
+			return err.Error()
+		}
+		if err := this.generateCiFile("template/java/.gitlab-ci.yml", input, uid); err != nil {
+			logs.Error(err.Error())
+			return err.Error()
+		}
+		if err := this.generateCiFile("template/java/deployment.yaml", input, uid); err != nil {
+			logs.Error(err.Error())
+			return err.Error()
+		}
+		if err := this.generateCiFile("template/java/Dockerfile", input, uid); err != nil {
+			logs.Error(err.Error())
+			return err.Error()
+		}
+		if err := os.Rename(uid+"/Dockerfile", uid+"/.devops/Dockerfile"); err != nil {
+			logs.Error(err.Error())
+			return err.Error()
+		}
+		if err := os.Rename(uid+"/deployment.yaml", uid+"/.devops/yaml/"+this.Ctl.Log.Spec.Template.Env+"/deployment.yaml"); err != nil {
+			logs.Error(err.Error())
+			return err.Error()
+		}
+		if err := common.Zip(uid, "web/ci.zip"); err != nil {
+			logs.Error(err.Error())
+			return err.Error()
+		}
+		logs.Info("success")
+		return "success"
+	}
+}
+
+func (this *DeploymentController) add_javaMul() string {
+	input := log.Ci{}
+	if js, err := simplejson.NewJson(this.Ctx.Input.RequestBody); err != nil {
+		logs.Error(err.Error())
+		return err.Error()
+	} else {
+		//input.Name = js.Get("name").MustString()
+		//input.Describe = js.Get("describe").MustString()
+		//input.Health = js.Get("health").MustString()
+		//input.Port = js.Get("port").MustString()
+		input.Modules = make([]log.Modules, 0)
+		arr := js.Get("modules").MustArray()
+		for _, module := range arr {
+			m, _ := module.(map[string]interface{})
+			input.Modules = append(input.Modules, log.Modules{
+				Name:           m["name"].(string),
+				Describe:       m["describe"].(string),
+				ArtifactsPaths: m["artifactsPaths"].(string),
+				Health:         m["health"].(string),
+				Port:           m["port"].(string),
+			})
+		}
+		input.Namespace = js.Get("namespace").MustString()
+		input.OnlyRefs = js.Get("onlyRefs").MustString()
+		input.GitUrl = js.Get("gitUrl").MustString()
+		input.GatewayRealmName = this.Ctl.Log.Spec.Template.GatewayRealmName
+		input.WebRealmName = this.Ctl.Log.Spec.Template.WebRealmName
+		input.Registry = log.Registry{
+			Username: this.Ctl.Log.Spec.Template.Username,
+			Password: this.Ctl.Log.Spec.Template.Password,
+			Address:  this.Ctl.Log.Spec.Template.Address,
+		}
+		input.Env = this.Ctl.Log.Spec.Template.Env
+		input.Package = log.Package{
+			Image:          this.Ctl.Log.Spec.Template.Registry.Java.PackageImage,
+			ArtifactsPaths: js.Get("artifactsPaths").MustString(),
+		}
+		input.Release = log.Release{
+			Image: this.Ctl.Log.Spec.Template.Registry.Java.ReleaseImage,
+		}
+		input.Deploy = log.Deploy{
+			Image: this.Ctl.Log.Spec.Template.Registry.Java.DeployImage,
+		}
+		uid := uuid.New()
+		if err := os.MkdirAll(uid+"/.devops/", os.ModePerm); err != nil {
+			logs.Error(err.Error())
+			return err.Error()
+		}
+		if err := this.generateCiFile("template/javaMul/.gitlab-ci.yml", input, uid); err != nil {
+			logs.Error(err.Error())
+			return err.Error()
+		}
+		for _, module := range input.Modules {
+			if err := os.MkdirAll(uid+"/.devops/"+module.Name+"/yaml/"+this.Ctl.Log.Spec.Template.Env, os.ModePerm); err != nil {
+				logs.Error(err.Error())
+				return err.Error()
+			}
+			input.Name = module.Name
+			input.Describe = module.Describe
+			input.Port = module.Port
+			input.Health = module.Health
+			input.Package.ArtifactsPaths = module.ArtifactsPaths
+			if err := this.generateCiFile("template/javaMul/deployment.yaml", input, uid); err != nil {
+				logs.Error(err.Error())
+				return err.Error()
+			}
+			if err := this.generateCiFile("template/javaMul/Dockerfile", input, uid); err != nil {
+				logs.Error(err.Error())
+				return err.Error()
+			}
+			if err := os.Rename(uid+"/Dockerfile", uid+"/.devops/"+module.Name+"/Dockerfile"); err != nil {
+				logs.Error(err.Error())
+				return err.Error()
+			}
+			if err := os.Rename(uid+"/deployment.yaml", uid+"/.devops/"+module.Name+"/yaml/"+this.Ctl.Log.Spec.Template.Env+"/deployment.yaml"); err != nil {
+				logs.Error(err.Error())
+				return err.Error()
+			}
+		}
+		if err := common.Zip(uid, "web/ci.zip"); err != nil {
+			logs.Error(err.Error())
+			return err.Error()
+		}
+		logs.Info("success")
+		return "success"
+	}
+}
+
+func (this *DeploymentController) add_npm() string {
+	input := log.Ci{}
+	if js, err := simplejson.NewJson(this.Ctx.Input.RequestBody); err != nil {
+		logs.Error(err.Error())
+		return err.Error()
+	} else {
+		input.Name = js.Get("name").MustString()
+		input.Namespace = js.Get("namespace").MustString()
+		input.Describe = js.Get("describe").MustString()
+		input.OnlyRefs = js.Get("onlyRefs").MustString()
+		input.GitUrl = js.Get("gitUrl").MustString()
+		input.Health = js.Get("health").MustString()
+		input.Port = js.Get("port").MustString()
+		input.GatewayRealmName = this.Ctl.Log.Spec.Template.GatewayRealmName
+		input.WebRealmName = this.Ctl.Log.Spec.Template.WebRealmName
+		input.Registry = log.Registry{
+			Username: this.Ctl.Log.Spec.Template.Username,
+			Password: this.Ctl.Log.Spec.Template.Password,
+			Address:  this.Ctl.Log.Spec.Template.Address,
+		}
+		input.Env = this.Ctl.Log.Spec.Template.Env
+		input.Package = log.Package{
+			Image:          this.Ctl.Log.Spec.Template.Registry.Npm.PackageImage,
+			ArtifactsPaths: js.Get("artifactsPaths").MustString(),
+		}
+		input.Release = log.Release{
+			Image: this.Ctl.Log.Spec.Template.Registry.Npm.ReleaseImage,
+		}
+		input.Deploy = log.Deploy{
+			Image: this.Ctl.Log.Spec.Template.Registry.Npm.DeployImage,
+		}
+		uid := uuid.New()
+		if err := os.MkdirAll(uid+"/.devops/yaml/"+this.Ctl.Log.Spec.Template.Env, os.ModePerm); err != nil {
+			logs.Error(err.Error())
+			return err.Error()
+		}
+		if err := this.generateCiFile("template/npm/.gitlab-ci.yml", input, uid); err != nil {
+			logs.Error(err.Error())
+			return err.Error()
+		}
+		if err := this.generateCiFile("template/npm/deployment.yaml", input, uid); err != nil {
+			logs.Error(err.Error())
+			return err.Error()
+		}
+		if err := this.generateCiFile("template/npm/Dockerfile", input, uid); err != nil {
+			logs.Error(err.Error())
+			return err.Error()
+		}
+		if err := os.Rename(uid+"/Dockerfile", uid+"/.devops/Dockerfile"); err != nil {
+			logs.Error(err.Error())
+			return err.Error()
+		}
+		if source, err := os.Open("template/npm/nginx.conf"); err != nil {
+			defer source.Close()
+			logs.Error(err.Error())
+			return err.Error()
+		} else {
+			defer source.Close()
+			if destination, err := os.Create(uid + "/.devops/nginx.conf"); err != nil {
+				defer destination.Close()
+				logs.Error(err.Error())
+				return err.Error()
+			} else {
+				defer destination.Close()
+				if _, err := io.Copy(destination, source); err != nil {
+					logs.Error(err.Error())
+					return err.Error()
+				}
+			}
+		}
+		if err := os.Rename(uid+"/deployment.yaml", uid+"/.devops/yaml/"+this.Ctl.Log.Spec.Template.Env+"/deployment.yaml"); err != nil {
+			logs.Error(err.Error())
+			return err.Error()
+		}
+		if err := common.Zip(uid, "web/ci.zip"); err != nil {
+			logs.Error(err.Error())
+			return err.Error()
+		}
+		logs.Info("success")
+		return "success"
+	}
+}
+
+func (this *DeploymentController) generateCiFile(templateFilePath string, input log.Ci, uid string) error {
+	if temp, err := template.ParseFiles(templateFilePath); err != nil {
+		logs.Error(err.Error())
+		return err
+	} else {
+		filename := strings.Split(templateFilePath, "/")[2]
+		if f, err := os.Create(uid + "/" + filename); err != nil {
+			defer f.Close()
+			return err
+
+		} else {
+			defer f.Close()
+			if err := temp.Execute(f, input); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 // get warning info
 // Deprecated
 func (this *WarningController) Get() {
@@ -445,140 +749,3 @@ func (this *ChartController) Get() {
 	result, _ := json.Marshal(list)
 	this.Ctx.WriteString(string(result))
 }
-
-//func (this *ChartController) Get() {
-//	r := make([]datasource.Result, 0)
-//	datasource.Exec(&r, "SELECT * FROM analy.result where time >= ? and time < ? order by time desc limit ?;", "2021-07-18", "2021-07-19", 6)
-//	result := make([]Chart, 0)
-//	for _, res := range r {
-//		originMap := make(map[string]interface{})
-//		err := json.Unmarshal([]byte(res.OriginIndex), &originMap)
-//		if err != nil {
-//			fmt.Println(err)
-//			return
-//		}
-//		originIndex, _ := originMap["index"].([]interface{})
-//		originData, _ := originMap["data"].([]interface{})
-//		fmt.Println(originIndex,originData)
-//		var chart = Chart{}
-//		origin(res, &chart)
-//		auto(res, &chart)
-//		//iforest(res, chart)
-//		//merge(res, chart)
-//		result = append(result, chart)
-//	}
-//	var resultStr string
-//	resultByte, err := json.Marshal(result)
-//	if err != nil {
-//		resultStr = err.Error()
-//	} else {
-//		resultStr = string(resultByte)
-//	}
-//	this.Ctx.WriteString(resultStr)
-//}
-//
-//func origin(res datasource.Result, chart *Chart) {
-//	originMap := make(map[string]interface{})
-//	err := json.Unmarshal([]byte(res.OriginIndex), &originMap)
-//	if err != nil {
-//		fmt.Println(err)
-//		return
-//	}
-//	originIndex, _ := originMap["index"].([]interface{})
-//	originData, _ := originMap["data"].([]interface{})
-//	xAxis := XAxis{
-//		Data: make([]string, 0),
-//	}
-//	series := Series{
-//		Data: make([]string, 0),
-//	}
-//	for _, oi := range originIndex {
-//		oiflo, _ := oi.(float64)
-//		xAxis.Data = append(xAxis.Data, (time.Unix(int64(oiflo)/1000, 0).Format("15:04:05")))
-//	}
-//	for _, od := range originData {
-//		o, _ := od.([]interface{})
-//		odflo, _ := o[0].(float64)
-//		series.Data = append(series.Data, strconv.FormatFloat(odflo, 'f', -1, 64))
-//	}
-//	chart.XAxis = xAxis
-//	chart.Series = append(chart.Series, series)
-//}
-//
-//func auto(res datasource.Result, chart *Chart) {
-//	originMap := make(map[string]interface{})
-//	autoMap := make(map[string]interface{})
-//	json.Unmarshal([]byte(res.OriginIndex), &originMap)
-//	json.Unmarshal([]byte(res.AutoIndex), &autoMap)
-//
-//	indexs, datas := mergedata(originMap, autoMap)
-//
-//	xAxis := XAxis{
-//		Data: make([]string, 0),
-//	}
-//	series := Series{
-//		Data: make([]string, 0),
-//	}
-//	for _, oi := range indexs {
-//		value, _ := oi.(float64)
-//		xAxis.Data = append(xAxis.Data, (time.Unix(int64(value)/1000, 0).Format("15:04:05")))
-//	}
-//	for _, od := range datas {
-//		series.Data = append(series.Data, od)
-//	}
-//	chart.XAxis = xAxis
-//	chart.Series = append(chart.Series, series)
-//}
-
-//func iforest(res datasource.Result, chart Chart) {
-//	originMap := make(map[string]interface{})
-//	iforestMap := make(map[string]interface{})
-//
-//	json.Unmarshal([]byte(res.OriginIndex), originMap)
-//	json.Unmarshal([]byte(res.IforestIndex), iforestMap)
-//
-//	indexs, datas := mergedata(originMap, iforestMap)
-//
-//	xAxis := XAxis{
-//		Data: make([]string, 0),
-//	}
-//	series := Series{
-//		Data: make([]string, 0),
-//	}
-//	for _, oi := range indexs {
-//		value, ok := oi.(int64)
-//		if !ok {
-//			fmt.Println(ok)
-//		}
-//		xAxis.Data = append(xAxis.Data, (time.Unix(value, 0).Format("15:04:05")))
-//	}
-//	for _, od := range datas {
-//		series.Data = append(series.Data, string(od))
-//	}
-//	chart.XAxis = xAxis
-//	chart.Series = append(chart.Series, series)
-//}
-
-//
-//func merge(res datasource.Result, chart Chart) {
-//	originMap := make(map[string]string)
-//	json.Unmarshal([]byte(res.IforestIndex), originMap)
-//	originIndex := originMap["index"]
-//	originData := originMap["data"]
-//	xAxis := XAxis{
-//		Data: make([]string, 0),
-//	}
-//	series := Series{
-//		Data: make([]string, 0),
-//	}
-//	for _, oi := range originIndex {
-//
-//		xAxis.Data = append(xAxis.Data, (time.Unix(int64(oi), 0).Format("15:04:05")))
-//	}
-//	for _, od := range originData {
-//		series.Data = append(series.Data, string(od))
-//	}
-//	chart.XAxis = xAxis
-//	chart.Series = append(chart.Series, series)
-//}
-//}
