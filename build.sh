@@ -4,7 +4,7 @@ if [ "$1" = "" ] && [ "$1" != "ciiplat" ] && [ "$1" != "lync2m" ] && [ "$1" != "
 	exit 1
 else
   go build
-  docker build -t swr.cn-north-4.myhuaweicloud.com/cotte-internal/log:0.0.3-$1 .
-  docker push swr.cn-north-4.myhuaweicloud.com/cotte-internal/log:0.0.3-$1
+  docker build -t swr.cn-north-4.myhuaweicloud.com/cotte-internal/log:0.0.5-$1 .
+  docker push swr.cn-north-4.myhuaweicloud.com/cotte-internal/log:0.0.5-$1
 	exit 0
 fi

@@ -130,18 +130,22 @@ type Ci struct {
 	GitUrl           string    `json:"gitUrl"`
 	OnlyRefs         string    `json:"onlyRefs"`
 	Env              string    `json:"env"`
-	Port             string    `json:port`
-	Health           string    `json:health`
+	Port             string    `json:"port"`
+	Prefix           string    `json:"prefix"`
+	Health           string    `json:"health"`
 	WebRealmName     string    `json:"webRealmname"`
 	GatewayRealmName string    `json:"gatewayRealmName"`
+	WebHost          string    `json:"webHost"`
+	GatewayHost      string    `json:"gatewayHost"`
 }
 
 type Modules struct {
 	Name           string `json:"name"`
 	Describe       string `json:"describe"`
 	ArtifactsPaths string `json:"artifactsPaths"`
-	Port           string `json:port`
-	Health         string `json:health`
+	Port           string `json:"port"`
+	Prefix         string `json:"prefix"`
+	Health         string `json:"health"`
 }
 
 type Package struct {

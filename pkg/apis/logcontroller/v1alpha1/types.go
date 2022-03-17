@@ -93,7 +93,7 @@ type Ememory struct {
 type Template struct {
 	Registry         Registry `json:"registry"`
 	Env              string   `json:"env"`
-	WebRealmName     string   `json:"webRealmname"`
+	WebRealmName     string   `json:"webRealmName"`
 	GatewayRealmName string   `json:"gatewayRealmName"`
 	Address          string   `json:"address"`
 	Username         string   `json:"username"`

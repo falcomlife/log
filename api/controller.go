@@ -69,11 +69,9 @@ func (this *DeploymentController) Get() {
 }
 
 func deployment_list(this *DeploymentController) string {
-	logs.Info("start :", time.Now().Unix())
 	var list = make([]interface{}, 0)
 	namespaces, err := this.Ctl.Kubeclientset.CoreV1().Namespaces().List(context.Background(), metav1.ListOptions{})
 	businessNamespace := make(map[string]bool)
-	logs.Info("list namespace :", time.Now().Unix())
 	for _, namespace := range namespaces.Items {
 		value, ok := namespace.Labels["role"]
 		if ok && value == "business" {
@@ -83,7 +81,6 @@ func deployment_list(this *DeploymentController) string {
 	if err != nil {
 		logs.Error(err.Error())
 	}
-	logs.Info("get bussiness namespace :", time.Now().Unix())
 	pod_replicaSet_map := make(map[types.UID]map[string]interface{})
 	if pods, err := this.Ctl.Kubeclientset.CoreV1().Pods("").List(context.Background(), metav1.ListOptions{}); err != nil {
 		logs.Error(err.Error())
@@ -115,7 +112,6 @@ func deployment_list(this *DeploymentController) string {
 	this.Ctl.DeploymentQueue.Range(func(k, v interface{}) bool {
 		dep, _ := v.(*v1.Deployment)
 		if businessNamespace[dep.Namespace] {
-			logs.Info("every time get pod by deployment :", time.Now().Unix())
 			podNames, startTime, duration, restartTimes, podStatus := this.getPodsByDeployment(dep.UID, dep.Namespace, pod_replicaSet_map)
 			list = append(list, log.Deployment{
 				Name:         dep.Name,
@@ -136,16 +132,14 @@ func deployment_list(this *DeploymentController) string {
 		}
 		return true
 	})
-	logs.Info("sort :", time.Now().Unix())
 	if len(list) != 0 {
 		sort.SliceStable(list, func(i, j int) bool {
 			n1, _ := list[i].(log.Deployment)
 			n2, _ := list[j].(log.Deployment)
-			return n1.Name < n2.Name
+			return n1.Namespace < n2.Namespace
 		})
 	}
 	b, err := json.Marshal(list)
-	logs.Info("finish :", time.Now().Unix())
 	if err != nil {
 		return err.Error()
 	} else {
@@ -162,54 +156,63 @@ func deployment_desc(this *DeploymentController, name string, namespace string) 
 	m["replicaset"] = &replicasetInfos
 	m["deployment"] = &deploymentInfos
 
-	deployment, err := this.Ctl.Kubeclientset.AppsV1().Deployments(namespace).Get(context.Background(), name, metav1.GetOptions{})
-	dname := deployment.Name
-	if err != nil {
+	if deployment, err := this.Ctl.Kubeclientset.AppsV1().Deployments(namespace).Get(context.Background(), name, metav1.GetOptions{}); err != nil {
+		logs.Error(err.Error())
 		return err.Error()
-	}
-	var replicaset v1.ReplicaSet
-	replicasets, err := this.Ctl.Kubeclientset.AppsV1().ReplicaSets(namespace).List(context.Background(), metav1.ListOptions{})
-	for _, rs := range replicasets.Items {
-		for _, replicasetOwner := range rs.OwnerReferences {
-			if replicasetOwner.UID == deployment.UID && *rs.Spec.Replicas != 0 {
-				replicaset = rs
-				break
-			}
-		}
-	}
-	rname := replicaset.Name
-	pname := make([]string, 0)
-	podAll, err := this.Ctl.Kubeclientset.CoreV1().Pods(namespace).List(context.Background(), metav1.ListOptions{})
-	if err != nil {
-		return err.Error()
-	}
-	for _, pod := range podAll.Items {
-		for _, owner := range pod.OwnerReferences {
-			if owner.UID == replicaset.UID {
-				pname = append(pname, pod.Name)
-			}
-		}
-	}
-
-	eventlist, err := this.Ctl.Kubeclientset.CoreV1().Events(namespace).List(context.Background(), metav1.ListOptions{})
-	if err != nil {
-		return err.Error()
-	}
-	for _, event := range eventlist.Items {
-		var serviceInfo log.ServiceInfo
-		if event.InvolvedObject.Kind == "Pod" {
-			for _, pn := range pname {
-				if pn == event.InvolvedObject.Name {
-					serviceInfo = this.packageForServiceInfo(event)
-					podInfos = append(podInfos, serviceInfo)
+	} else {
+		dname := deployment.Name
+		var replicasetSlice []v1.ReplicaSet
+		if replicasets, err := this.Ctl.Kubeclientset.AppsV1().ReplicaSets(namespace).List(context.Background(), metav1.ListOptions{}); err != nil {
+			logs.Error(err.Error())
+			return err.Error()
+		} else {
+			for _, rs := range replicasets.Items {
+				for _, replicasetOwner := range rs.OwnerReferences {
+					if replicasetOwner.UID == deployment.UID {
+						replicasetSlice = append(replicasetSlice, rs)
+					}
 				}
 			}
-		} else if event.InvolvedObject.Kind == "ReplicaSet" && event.InvolvedObject.Name == rname {
-			serviceInfo = this.packageForServiceInfo(event)
-			replicasetInfos = append(replicasetInfos, serviceInfo)
-		} else if event.InvolvedObject.Kind == "Deployment" && event.InvolvedObject.Name == dname {
-			serviceInfo = this.packageForServiceInfo(event)
-			deploymentInfos = append(deploymentInfos, serviceInfo)
+			pname := make([]string, 0)
+			if podAll, err := this.Ctl.Kubeclientset.CoreV1().Pods(namespace).List(context.Background(), metav1.ListOptions{}); err != nil {
+				logs.Error(err.Error())
+				return err.Error()
+			} else {
+				for _, replicaset := range replicasetSlice {
+					for _, pod := range podAll.Items {
+						for _, owner := range pod.OwnerReferences {
+							if owner.UID == replicaset.UID {
+								pname = append(pname, pod.Name)
+							}
+						}
+					}
+				}
+				if eventlist, err := this.Ctl.Kubeclientset.CoreV1().Events(namespace).List(context.Background(), metav1.ListOptions{}); err != nil {
+					logs.Error(err.Error())
+					return err.Error()
+				} else {
+					for _, replicaset := range replicasetSlice {
+						rname := replicaset.Name
+						for _, event := range eventlist.Items {
+							var serviceInfo log.ServiceInfo
+							if event.InvolvedObject.Kind == "Pod" {
+								for _, pn := range pname {
+									if pn == event.InvolvedObject.Name {
+										serviceInfo = this.packageForServiceInfo(event)
+										podInfos = append(podInfos, serviceInfo)
+									}
+								}
+							} else if event.InvolvedObject.Kind == "ReplicaSet" && event.InvolvedObject.Name == rname {
+								serviceInfo = this.packageForServiceInfo(event)
+								replicasetInfos = append(replicasetInfos, serviceInfo)
+							} else if event.InvolvedObject.Kind == "Deployment" && event.InvolvedObject.Name == dname {
+								serviceInfo = this.packageForServiceInfo(event)
+								deploymentInfos = append(deploymentInfos, serviceInfo)
+							}
+						}
+					}
+				}
+			}
 		}
 	}
 	b, err := json.Marshal(m)
@@ -226,7 +229,7 @@ func (this *DeploymentController) packageForServiceInfo(event corev1.Event) log.
 		Reason:  event.Reason,
 		Message: event.Message,
 		Type:    event.Type,
-		Time:    event.LastTimestamp.String(),
+		Time:    event.CreationTimestamp.String(),
 		Kind:    event.InvolvedObject.Kind,
 	}
 }
@@ -271,49 +274,58 @@ func maxContainerRestarts(pod *corev1.Pod) int {
 }
 
 func deployment_log(this *DeploymentController, name string, namespace string) string {
-	deployment, err := this.Ctl.Kubeclientset.AppsV1().Deployments(namespace).Get(context.Background(), name, metav1.GetOptions{})
-	if err != nil {
-		return err.Error()
-	}
-	var replicaset v1.ReplicaSet
-	replicasets, err := this.Ctl.Kubeclientset.AppsV1().ReplicaSets(namespace).List(context.Background(), metav1.ListOptions{})
-	for _, rs := range replicasets.Items {
-		for _, replicasetOwner := range rs.OwnerReferences {
-			if replicasetOwner.UID == deployment.UID && *rs.Spec.Replicas != 0 {
-				replicaset = rs
-				break
-			}
-		}
-	}
-	logs := make([]log.ServiceLog, 0)
-	podAll, err := this.Ctl.Kubeclientset.CoreV1().Pods(namespace).List(context.Background(), metav1.ListOptions{})
-	for _, pod := range podAll.Items {
-		for _, owner := range pod.OwnerReferences {
-			if owner.UID == replicaset.UID {
-				for _, container := range pod.Spec.Containers {
-					req := this.Ctl.Kubeclientset.CoreV1().Pods(namespace).GetLogs(pod.Name, &corev1.PodLogOptions{Follow: false, Container: container.Name})
-					podLogs, err := req.Stream(context.Background())
-					if err != nil {
-						return "error in opening stream"
-					}
-					defer podLogs.Close()
-
-					buf := new(bytes.Buffer)
-					_, err = io.Copy(buf, podLogs)
-					if err != nil {
-						return "error in copy information from podLogs to buf"
-					}
-					str := buf.String()
-					logs = append(logs, log.ServiceLog{Name: pod.Name + "/" + container.Name, Content: str})
-				}
-			}
-		}
-	}
-	b, err := json.Marshal(logs)
-	if err != nil {
+	if deployment, err := this.Ctl.Kubeclientset.AppsV1().Deployments(namespace).Get(context.Background(), name, metav1.GetOptions{}); err != nil {
+		logs.Error(err.Error())
 		return err.Error()
 	} else {
-		return string(b)
+		var replicasetSlice []v1.ReplicaSet
+		if replicasets, err := this.Ctl.Kubeclientset.AppsV1().ReplicaSets(namespace).List(context.Background(), metav1.ListOptions{}); err != nil {
+			logs.Error(err.Error())
+			return err.Error()
+		} else {
+			for _, rs := range replicasets.Items {
+				for _, replicasetOwner := range rs.OwnerReferences {
+					if replicasetOwner.UID == deployment.UID && *rs.Spec.Replicas != 0 {
+						replicasetSlice = append(replicasetSlice, rs)
+					}
+				}
+			}
+			logSlice := make([]log.ServiceLog, 0)
+			if podAll, err := this.Ctl.Kubeclientset.CoreV1().Pods(namespace).List(context.Background(), metav1.ListOptions{}); err != nil {
+				logs.Error(err.Error())
+				return err.Error()
+			} else {
+				for _, replicaset := range replicasetSlice {
+					for _, pod := range podAll.Items {
+						for _, owner := range pod.OwnerReferences {
+							if owner.UID == replicaset.UID {
+								for _, container := range pod.Spec.Containers {
+									req := this.Ctl.Kubeclientset.CoreV1().Pods(namespace).GetLogs(pod.Name, &corev1.PodLogOptions{Follow: false, Container: container.Name})
+									podLogs, err := req.Stream(context.Background())
+									if err != nil {
+										return "error in opening stream"
+									}
+									defer podLogs.Close()
+									buf := new(bytes.Buffer)
+									_, err = io.Copy(buf, podLogs)
+									if err != nil {
+										return "error in copy information from podLogs to buf"
+									}
+									str := buf.String()
+									logSlice = append(logSlice, log.ServiceLog{Name: pod.Name + "/" + container.Name, Content: str})
+								}
+							}
+						}
+					}
+				}
+			}
+			b, err := json.Marshal(logSlice)
+			if err != nil {
+				return err.Error()
+			} else {
+				return string(b)
+			}
+		}
 	}
 }
 
@@ -336,23 +348,19 @@ func (this *DeploymentController) Post() {
 
 func (this *DeploymentController) restart(input log.DeploymentBody) string {
 	if input.Kind == "Deployment" {
-		logs.Info("debug 1")
 		deployment, err := this.Ctl.Kubeclientset.AppsV1().Deployments(input.Namespace).Get(context.Background(), input.Name, metav1.GetOptions{})
 		if err != nil {
 			logs.Error(err.Error())
 			return err.Error()
 		}
-		logs.Info("debug 2")
 		pods, err := this.Ctl.Kubeclientset.CoreV1().Pods(input.Namespace).List(context.Background(), metav1.ListOptions{})
 		if err != nil {
 			logs.Error(err.Error())
 			return err.Error()
 		}
-		logs.Info("debug 3")
 		for _, pod := range pods.Items {
 			for _, ownerRc := range pod.OwnerReferences {
 				replicaSet, err := this.Ctl.Kubeclientset.AppsV1().ReplicaSets(input.Namespace).Get(context.Background(), ownerRc.Name, metav1.GetOptions{})
-				logs.Info("debug 4")
 				if err != nil {
 					logs.Error(err.Error())
 					return err.Error()
@@ -364,7 +372,6 @@ func (this *DeploymentController) restart(input log.DeploymentBody) string {
 							logs.Error(err.Error())
 							return err.Error()
 						}
-						logs.Info("debug 5")
 					}
 				}
 			}
@@ -429,10 +436,11 @@ func (this *DeploymentController) add_java() string {
 		input.Describe = js.Get("describe").MustString()
 		input.OnlyRefs = js.Get("onlyRefs").MustString()
 		input.GitUrl = js.Get("gitUrl").MustString()
+		input.Prefix = js.Get("prefix").MustString()
 		input.Health = js.Get("health").MustString()
 		input.Port = js.Get("port").MustString()
 		input.GatewayRealmName = this.Ctl.Log.Spec.Template.GatewayRealmName
-		input.WebRealmName = this.Ctl.Log.Spec.Template.WebRealmName
+		input.GatewayHost = strings.Split(this.Ctl.Log.Spec.Template.GatewayRealmName, "//")[1]
 		input.Registry = log.Registry{
 			Username: this.Ctl.Log.Spec.Template.Username,
 			Password: this.Ctl.Log.Spec.Template.Password,
@@ -501,6 +509,7 @@ func (this *DeploymentController) add_javaMul() string {
 				Name:           m["name"].(string),
 				Describe:       m["describe"].(string),
 				ArtifactsPaths: m["artifactsPaths"].(string),
+				Prefix:         m["prefix"].(string),
 				Health:         m["health"].(string),
 				Port:           m["port"].(string),
 			})
@@ -509,7 +518,7 @@ func (this *DeploymentController) add_javaMul() string {
 		input.OnlyRefs = js.Get("onlyRefs").MustString()
 		input.GitUrl = js.Get("gitUrl").MustString()
 		input.GatewayRealmName = this.Ctl.Log.Spec.Template.GatewayRealmName
-		input.WebRealmName = this.Ctl.Log.Spec.Template.WebRealmName
+		input.GatewayHost = strings.Split(this.Ctl.Log.Spec.Template.GatewayRealmName, "//")[1]
 		input.Registry = log.Registry{
 			Username: this.Ctl.Log.Spec.Template.Username,
 			Password: this.Ctl.Log.Spec.Template.Password,
@@ -543,6 +552,7 @@ func (this *DeploymentController) add_javaMul() string {
 			input.Name = module.Name
 			input.Describe = module.Describe
 			input.Port = module.Port
+			input.Prefix = module.Prefix
 			input.Health = module.Health
 			input.Package.ArtifactsPaths = module.ArtifactsPaths
 			if err := this.generateCiFile("template/javaMul/deployment.yaml", input, uid); err != nil {
@@ -582,10 +592,11 @@ func (this *DeploymentController) add_npm() string {
 		input.Describe = js.Get("describe").MustString()
 		input.OnlyRefs = js.Get("onlyRefs").MustString()
 		input.GitUrl = js.Get("gitUrl").MustString()
+		input.Prefix = js.Get("prefix").MustString()
 		input.Health = js.Get("health").MustString()
 		input.Port = js.Get("port").MustString()
-		input.GatewayRealmName = this.Ctl.Log.Spec.Template.GatewayRealmName
 		input.WebRealmName = this.Ctl.Log.Spec.Template.WebRealmName
+		input.WebHost = strings.Split(this.Ctl.Log.Spec.Template.WebRealmName, "//")[1]
 		input.Registry = log.Registry{
 			Username: this.Ctl.Log.Spec.Template.Username,
 			Password: this.Ctl.Log.Spec.Template.Password,

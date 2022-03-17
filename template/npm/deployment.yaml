@@ -57,3 +57,27 @@ spec:
       name: {{.Name}}
   selector:
     app: {{.Name}}
+---
+{{- $NamePrefix := print "/" .Name}}
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: {{.Name}}
+spec:
+  gateways:
+    - istio-system/gateway
+  hosts:
+    - {{.WebHost}}
+  http:
+    - match:
+        - uri:
+            exact: /{{.Name}}
+      {{- if ne .Prefix $NamePrefix}}
+      rewrite:
+        uri: {{.Prefix}}
+      {{- end}}
+      route:
+        - destination:
+            host: {{.Name}}.{{.Namespace}}
+            port:
+              number: 80
