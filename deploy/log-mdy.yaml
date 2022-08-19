@@ -1,9 +1,12 @@
-apiVersion: logcontroller.k8s.io/v1alpha1
-kind: Log
+apiVersion: klogcontroller.k8s.io/v1alpha1
+kind: Klog
 metadata:
   name: klog
   namespace: klog
 spec:
+  context:
+    envoyFilters:
+      - ciip-auth-lua
   prometheus:
     name: log
     protocol: http

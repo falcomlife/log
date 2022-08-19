@@ -1,11 +1,11 @@
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
-  name: logs.logcontroller.k8s.io
+  name: klogs.klogcontroller.k8s.io
 spec:
-  group: logcontroller.k8s.io
+  group: klogcontroller.k8s.io
   version: v1alpha1
   names:
-    kind: Log
-    plural: logs
+    kind: Klog
+    plural: klogs
   scope: Namespaced

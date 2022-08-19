@@ -1,6 +1,6 @@
 // This is a generated file. Do not edit directly.
 
-module k8s.io/log-controller
+module k8s.io/klog-controller
 
 go 1.14
 
@@ -14,6 +14,7 @@ require (
 	github.com/json-iterator/go v1.1.10
 	github.com/robfig/cron/v3 v3.0.1
 	gonum.org/v1/plot v0.8.1
+	istio.io/client-go v0.0.0-20200715214203-1ab538406cd1
 	k8s.io/api v0.19.4
 	k8s.io/apimachinery v0.19.4
 	k8s.io/client-go v0.19.4

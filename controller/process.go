@@ -7,9 +7,9 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/cache"
+	"k8s.io/klog-controller/log"
+	logv1alpha1 "k8s.io/klog-controller/pkg/apis/klogcontroller/v1alpha1"
 	"k8s.io/klog/v2"
-	"k8s.io/log-controller/log"
-	logv1alpha1 "k8s.io/log-controller/pkg/apis/logcontroller/v1alpha1"
 	"sync"
 	"time"
 )
@@ -103,7 +103,7 @@ func (c *Controller) syncHandler(key string) error {
 	}
 
 	// Get the Log resource with this namespace/name
-	log, err := c.logsLister.Logs(namespace).Get(name)
+	log, err := c.logsLister.Klogs(namespace).Get(name)
 	if err != nil {
 		// The Log resource may no longer exist, in which case we stop
 		// processing.
@@ -123,7 +123,7 @@ func (c *Controller) syncHandler(key string) error {
 }
 
 // Update log ,whick get from kubernetes cluster
-func (c *Controller) updateLogStatus(l *logv1alpha1.Log) error {
+func (c *Controller) updateLogStatus(l *logv1alpha1.Klog) error {
 	// NEVER modify objects from the store. It's a read-only, local cache.
 	// You can use DeepCopy() to make a deep copy of original object and modify this copy
 	// Or create a copy manually for better performance

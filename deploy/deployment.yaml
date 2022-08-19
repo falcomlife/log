@@ -18,8 +18,9 @@ spec:
       - name: registry-pull-secret
       containers:
       - command:
-        - /opt/log-controller
-        image: swr.cn-north-4.myhuaweicloud.com/cotte-internal/log:0.0.5-release
+        - /opt/klog-controller
+        - -env=prod
+        image: swr.cn-north-4.myhuaweicloud.com/cotte-internal/log:0.0.7-release
         imagePullPolicy: Always
         name: klog
         ports:

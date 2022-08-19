@@ -2,8 +2,8 @@ package log
 
 import (
 	"github.com/json-iterator/go"
+	"k8s.io/klog-controller/common"
 	"k8s.io/klog/v2"
-	"k8s.io/log-controller/common"
 )
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary

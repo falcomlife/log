@@ -2,8 +2,8 @@ package controller
 
 import (
 	"fmt"
-	"k8s.io/log-controller/common"
-	"k8s.io/log-controller/log"
+	"k8s.io/klog-controller/common"
+	"k8s.io/klog-controller/log"
 	"math"
 	"strconv"
 	"time"

@@ -14,14 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package main
+// +k8s:deepcopy-gen=package
+// +groupName=klogcontroller.k8s.io
 
-import (
-	"k8s.io/klog-controller/api"
-	"k8s.io/klog-controller/controller"
-)
-
-func main() {
-	go controller.RunCrd()
-	api.BeegoInit()
-}
+// Package v1alpha1 is the v1alpha1 version of the API.
+package v1alpha1 // import "k8s.io/klog-controller/pkg/apis/klogcontroller/v1alpha1"

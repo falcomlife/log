@@ -82,13 +82,13 @@ spec:
   http:
     - match:
         - uri:
-            exact: /{{.Name}}
+            prefix: /{{.Name}}
       {{- if ne .Prefix $NamePrefix}}
       rewrite:
         uri: {{.Prefix}}
       {{- end}}
       route:
         - destination:
-            host: {{.Name}}.{{.Namespace}}
+            host: {{.Name}}
             port:
               number: {{.Port}}

@@ -89,6 +89,6 @@ spec:
       {{- end}}
       route:
         - destination:
-            host: {{.Name}}.{{.Namespace}}
+            host: {{.Name}}
             port:
               number: {{.Port}}

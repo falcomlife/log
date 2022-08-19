@@ -14,14 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package main
+package klogcontroller
 
-import (
-	"k8s.io/klog-controller/api"
-	"k8s.io/klog-controller/controller"
+// GroupName is the group name used in this package
+const (
+	GroupName = "klogcontroller.k8s.io"
 )
-
-func main() {
-	go controller.RunCrd()
-	api.BeegoInit()
-}

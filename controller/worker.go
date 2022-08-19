@@ -2,9 +2,9 @@ package controller
 
 import (
 	"fmt"
+	"k8s.io/klog-controller/common"
+	"k8s.io/klog-controller/log"
 	"k8s.io/klog/v2"
-	"k8s.io/log-controller/common"
-	"k8s.io/log-controller/log"
 	"math"
 	"sort"
 	"strconv"

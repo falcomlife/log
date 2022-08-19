@@ -166,3 +166,8 @@ type Registry struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
 }
+
+type WhiteList struct {
+	Path string `json:"path"`
+	Type string `json:"type"`
+}

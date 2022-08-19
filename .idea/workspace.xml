@@ -19,21 +19,94 @@
     <select />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="08aaaee9-3500-46b7-8539-2268b5c53eba" name="Default Changelist" comment="feat: develop finish&#10;project 1 ans project 2 is finish">
-      <change beforePath="$PROJECT_DIR$/.idea/modules.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
+    <list default="true" id="08aaaee9-3500-46b7-8539-2268b5c53eba" name="Default Changelist" comment="feat: new function&#10;deploy vsvc to cluster">
+      <change afterPath="$PROJECT_DIR$/api/controller_istio.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/api/init.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/config/flag.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/config/init.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/config/istio.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/config/klog.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/config/kubernetes.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/config/rest_config.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/controller/init.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/api/controller.go" beforeDir="false" afterPath="$PROJECT_DIR$/api/controller.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Dockerfile" beforeDir="false" afterPath="$PROJECT_DIR$/Dockerfile" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/api/controller.go" beforeDir="false" afterPath="$PROJECT_DIR$/api/controller_kubernetes.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/build.sh" beforeDir="false" afterPath="$PROJECT_DIR$/build.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/controller/controller.go" beforeDir="false" afterPath="$PROJECT_DIR$/controller/controller.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/controller/process.go" beforeDir="false" afterPath="$PROJECT_DIR$/controller/process.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/controller/task.go" beforeDir="false" afterPath="$PROJECT_DIR$/controller/task.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/controller/warning.go" beforeDir="false" afterPath="$PROJECT_DIR$/controller/warning.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/controller/worker.go" beforeDir="false" afterPath="$PROJECT_DIR$/controller/worker.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deploy/crd.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/deploy/crd.yaml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/deploy/deployment.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/deploy/deployment.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deploy/log-huawei.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/deploy/log-huawei.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deploy/log-mdy.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/deploy/log-mdy.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deploy/log-test.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/deploy/log-test.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deploy/log-xy.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/deploy/log-xy.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deploy/rbac.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/deploy/rbac.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/go.mod" beforeDir="false" afterPath="$PROJECT_DIR$/go.mod" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/go.sum" beforeDir="false" afterPath="$PROJECT_DIR$/go.sum" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/hack/update-codegen.sh" beforeDir="false" afterPath="$PROJECT_DIR$/hack/update-codegen.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/log/analysis.go" beforeDir="false" afterPath="$PROJECT_DIR$/log/analysis.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/log/dto.go" beforeDir="false" afterPath="$PROJECT_DIR$/log/dto.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pkg/apis/logcontroller/v1alpha1/types.go" beforeDir="false" afterPath="$PROJECT_DIR$/pkg/apis/logcontroller/v1alpha1/types.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pkg/apis/logcontroller/v1alpha1/zz_generated.deepcopy.go" beforeDir="false" afterPath="$PROJECT_DIR$/pkg/apis/logcontroller/v1alpha1/zz_generated.deepcopy.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/log/prometheus.go" beforeDir="false" afterPath="$PROJECT_DIR$/log/prometheus.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/log/types.go" beforeDir="false" afterPath="$PROJECT_DIR$/log/types.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/log/wechat.go" beforeDir="false" afterPath="$PROJECT_DIR$/log/wechat.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/main.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/apis/logcontroller/register.go" beforeDir="false" afterPath="$PROJECT_DIR$/pkg/apis/klogcontroller/register.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/apis/logcontroller/v1alpha1/doc.go" beforeDir="false" afterPath="$PROJECT_DIR$/pkg/apis/klogcontroller/v1alpha1/doc.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/apis/logcontroller/v1alpha1/register.go" beforeDir="false" afterPath="$PROJECT_DIR$/pkg/apis/klogcontroller/v1alpha1/register.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/apis/logcontroller/v1alpha1/types.go" beforeDir="false" afterPath="$PROJECT_DIR$/pkg/apis/klogcontroller/v1alpha1/types.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/apis/logcontroller/v1alpha1/zz_generated.deepcopy.go" beforeDir="false" afterPath="$PROJECT_DIR$/pkg/apis/klogcontroller/v1alpha1/zz_generated.deepcopy.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/generated/clientset/versioned/clientset.go" beforeDir="false" afterPath="$PROJECT_DIR$/pkg/generated/clientset/versioned/clientset.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/generated/clientset/versioned/fake/clientset_generated.go" beforeDir="false" afterPath="$PROJECT_DIR$/pkg/generated/clientset/versioned/fake/clientset_generated.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/generated/clientset/versioned/fake/register.go" beforeDir="false" afterPath="$PROJECT_DIR$/pkg/generated/clientset/versioned/fake/register.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/generated/clientset/versioned/scheme/register.go" beforeDir="false" afterPath="$PROJECT_DIR$/pkg/generated/clientset/versioned/scheme/register.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/generated/clientset/versioned/typed/logcontroller/v1alpha1/doc.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/generated/clientset/versioned/typed/logcontroller/v1alpha1/fake/doc.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/generated/clientset/versioned/typed/logcontroller/v1alpha1/fake/fake_log.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/generated/clientset/versioned/typed/logcontroller/v1alpha1/fake/fake_logcontroller_client.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/generated/clientset/versioned/typed/logcontroller/v1alpha1/generated_expansion.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/generated/clientset/versioned/typed/logcontroller/v1alpha1/log.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/generated/clientset/versioned/typed/logcontroller/v1alpha1/logcontroller_client.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/generated/generated/clientset/versioned/clientset.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/generated/generated/clientset/versioned/doc.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/generated/generated/clientset/versioned/fake/clientset_generated.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/generated/generated/clientset/versioned/fake/doc.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/generated/generated/clientset/versioned/fake/register.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/generated/generated/clientset/versioned/scheme/doc.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/generated/generated/clientset/versioned/scheme/register.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/generated/generated/clientset/versioned/typed/logcontroller/v1alpha1/doc.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/generated/generated/clientset/versioned/typed/logcontroller/v1alpha1/fake/doc.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/generated/generated/clientset/versioned/typed/logcontroller/v1alpha1/fake/fake_log.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/generated/generated/clientset/versioned/typed/logcontroller/v1alpha1/fake/fake_logcontroller_client.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/generated/generated/clientset/versioned/typed/logcontroller/v1alpha1/generated_expansion.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/generated/generated/clientset/versioned/typed/logcontroller/v1alpha1/log.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/generated/generated/clientset/versioned/typed/logcontroller/v1alpha1/logcontroller_client.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/generated/generated/informers/externalversions/factory.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/generated/generated/informers/externalversions/generic.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/generated/generated/informers/externalversions/internalinterfaces/factory_interfaces.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/generated/generated/informers/externalversions/logcontroller/interface.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/generated/generated/informers/externalversions/logcontroller/v1alpha1/interface.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/generated/generated/informers/externalversions/logcontroller/v1alpha1/log.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/generated/generated/listers/logcontroller/v1alpha1/expansion_generated.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/generated/generated/listers/logcontroller/v1alpha1/log.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/generated/informers/externalversions/factory.go" beforeDir="false" afterPath="$PROJECT_DIR$/pkg/generated/informers/externalversions/factory.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/generated/informers/externalversions/generic.go" beforeDir="false" afterPath="$PROJECT_DIR$/pkg/generated/informers/externalversions/generic.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/generated/informers/externalversions/internalinterfaces/factory_interfaces.go" beforeDir="false" afterPath="$PROJECT_DIR$/pkg/generated/informers/externalversions/internalinterfaces/factory_interfaces.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/generated/informers/externalversions/logcontroller/interface.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/generated/informers/externalversions/logcontroller/v1alpha1/interface.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/generated/informers/externalversions/logcontroller/v1alpha1/log.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/generated/listers/logcontroller/v1alpha1/expansion_generated.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/generated/listers/logcontroller/v1alpha1/log.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/template/java/Dockerfile" beforeDir="false" afterPath="$PROJECT_DIR$/template/java/Dockerfile" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/template/java/deployment.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/template/java/deployment.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/template/javaMul/Dockerfile" beforeDir="false" afterPath="$PROJECT_DIR$/template/javaMul/Dockerfile" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/template/javaMul/deployment.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/template/javaMul/deployment.yaml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/template/npm/deployment.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/template/npm/deployment.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/template/npm/Dockerfile" beforeDir="false" afterPath="$PROJECT_DIR$/template/npm/Dockerfile" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/test.kubeconfig" beforeDir="false" afterPath="$PROJECT_DIR$/test.kubeconfig" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/web/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/web/index.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/web/js/app.9c439546.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web/js/app.9c439546.js.map" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -72,7 +145,7 @@
     <property name="go.import.settings.migrated" value="true" />
     <property name="go.tried.to.enable.integration.vgo.integrator" value="true" />
     <property name="go.vendoring.notification.had.been.shown" value="true" />
-    <property name="last_opened_file_path" value="$PROJECT_DIR$/deploy" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
     <property name="node.js.detected.package.eslint" value="true" />
     <property name="node.js.detected.package.tslint" value="true" />
     <property name="node.js.path.for.package.eslint" value="project" />
@@ -83,6 +156,11 @@
     <property name="settings.editor.selected.configurable" value="go.vgo" />
   </component>
   <component name="RecentsManager">
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/config" />
+      <recent name="$PROJECT_DIR$/template/java" />
+      <recent name="$PROJECT_DIR$/web" />
+    </key>
     <key name="CopyFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/deploy" />
       <recent name="$PROJECT_DIR$/template/javaMul" />
@@ -90,16 +168,22 @@
       <recent name="$PROJECT_DIR$/vendor/k8s.io" />
       <recent name="$PROJECT_DIR$/lib/pkg/mod/k8s.io" />
     </key>
-    <key name="MoveFile.RECENT_KEYS">
-      <recent name="$PROJECT_DIR$/template/java" />
-      <recent name="$PROJECT_DIR$/web" />
-    </key>
   </component>
-  <component name="RunManager">
-    <configuration name="go build k8s.io/log-controller" type="GoApplicationRunConfiguration" factoryName="Go Application" temporary="true" nameIsGenerated="true">
+  <component name="RunManager" selected="Go Build.go build main.go">
+    <configuration name="go build k8s.io/log-controller" type="GoApplicationRunConfiguration" factoryName="Go Application" nameIsGenerated="true">
       <module name="klog" />
       <working_directory value="$PROJECT_DIR$" />
+      <parameters value="-env=test -kubeconfig=test.kubeconfig" />
       <kind value="PACKAGE" />
+      <filePath value="$PROJECT_DIR$/main.go" />
+      <package value="k8s.io/log-controller" />
+      <directory value="$PROJECT_DIR$/" />
+      <method v="2" />
+    </configuration>
+    <configuration name="go build main.go" type="GoApplicationRunConfiguration" factoryName="Go Application" temporary="true" nameIsGenerated="true">
+      <module name="klog" />
+      <working_directory value="$PROJECT_DIR$" />
+      <kind value="FILE" />
       <filePath value="$PROJECT_DIR$/main.go" />
       <package value="k8s.io/log-controller" />
       <directory value="$PROJECT_DIR$/" />
@@ -107,12 +191,22 @@
     </configuration>
     <recent_temporary>
       <list>
-        <item itemvalue="Go Build.go build k8s.io/log-controller" />
+        <item itemvalue="Go Build.go build main.go" />
       </list>
     </recent_temporary>
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="2" />
+  </component>
+  <component name="Vcs.Log.History.Properties">
+    <option name="COLUMN_ORDER">
+      <list>
+        <option value="0" />
+        <option value="2" />
+        <option value="3" />
+        <option value="1" />
+      </list>
+    </option>
   </component>
   <component name="Vcs.Log.Tabs.Properties">
     <option name="TAB_STATES">
@@ -128,96 +222,101 @@
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="feat: develop finish&#10;project 1 ans project 2 is finish" />
-    <option name="LAST_COMMIT_MESSAGE" value="feat: develop finish&#10;project 1 ans project 2 is finish" />
+    <MESSAGE value="feat: new function&#10;deploy vsvc to cluster" />
+    <option name="LAST_COMMIT_MESSAGE" value="feat: new function&#10;deploy vsvc to cluster" />
   </component>
   <component name="VgoProject">
     <integration-enabled>true</integration-enabled>
   </component>
   <component name="WindowStateProjectService">
-    <state x="313" y="150" key="#com.intellij.execution.impl.EditConfigurationsDialog" timestamp="1646795318219">
+    <state x="779" y="157" key="#com.intellij.execution.impl.EditConfigurationsDialog" timestamp="1648000936557">
       <screen x="0" y="38" width="1920" height="1042" />
     </state>
-    <state x="313" y="150" key="#com.intellij.execution.impl.EditConfigurationsDialog/0.38.1920.1042@0.38.1920.1042" timestamp="1646795318219" />
-    <state x="614" y="159" width="682" height="799" key="#go_build_k8s.io/log-controller" timestamp="1646795339290">
+    <state x="779" y="157" key="#com.intellij.execution.impl.EditConfigurationsDialog/0.38.1920.1042@0.38.1920.1042" timestamp="1648000936557" />
+    <state x="693" y="305" width="524" height="507" key="#com.intellij.refactoring.safeDelete.UnsafeUsagesDialog" timestamp="1647937485277">
       <screen x="0" y="38" width="1920" height="1042" />
     </state>
-    <state x="614" y="159" width="682" height="799" key="#go_build_k8s.io/log-controller/0.38.1920.1042@0.38.1920.1042" timestamp="1646795339290" />
-    <state x="1145" y="292" key="#xdebugger.evaluate" timestamp="1647482585945">
+    <state x="693" y="305" width="524" height="507" key="#com.intellij.refactoring.safeDelete.UnsafeUsagesDialog/0.38.1920.1042@0.38.1920.1042" timestamp="1647937485277" />
+    <state x="614" y="159" width="682" height="799" key="#go_build_k8s.io/log-controller" timestamp="1648000693453">
       <screen x="0" y="38" width="1920" height="1042" />
     </state>
-    <state x="1145" y="292" key="#xdebugger.evaluate/0.38.1920.1042@0.38.1920.1042" timestamp="1647482585945" />
-    <state width="1031" height="608" key="DebuggerActiveHint" timestamp="1647503201553">
+    <state x="614" y="159" width="682" height="799" key="#go_build_k8s.io/log-controller/0.38.1920.1042@0.38.1920.1042" timestamp="1648000693453" />
+    <state x="1209" y="386" key="#xdebugger.evaluate" timestamp="1647915396092">
       <screen x="0" y="38" width="1920" height="1042" />
     </state>
-    <state width="1031" height="608" key="DebuggerActiveHint/0.38.1920.1042@0.38.1920.1042" timestamp="1647503201553" />
+    <state x="1209" y="386" key="#xdebugger.evaluate/0.38.1920.1042@0.38.1920.1042" timestamp="1647915396092" />
+    <state width="1031" height="608" key="DebuggerActiveHint" timestamp="1647915453769">
+      <screen x="0" y="38" width="1920" height="1042" />
+    </state>
+    <state width="1031" height="608" key="DebuggerActiveHint/0.38.1920.1042@0.38.1920.1042" timestamp="1647915453769" />
+    <state x="100" y="138" width="1720" height="842" key="DiffContextDialog" timestamp="1647934990264">
+      <screen x="0" y="38" width="1920" height="1042" />
+    </state>
+    <state x="100" y="138" width="1720" height="842" key="DiffContextDialog/0.38.1920.1042@0.38.1920.1042" timestamp="1647934990264" />
     <state x="693" y="224" width="313" height="535" key="EnvironmentVariablesDialog" timestamp="1646725341305">
       <screen x="0" y="38" width="1920" height="1042" />
     </state>
     <state x="693" y="224" width="313" height="535" key="EnvironmentVariablesDialog/0.38.1920.1042@0.38.1920.1042" timestamp="1646725341305" />
-    <state x="759" y="345" width="424" height="484" key="FileChooserDialogImpl" timestamp="1646097709200">
-      <screen x="0" y="38" width="1920" height="1042" />
-    </state>
-    <state x="759" y="345" width="424" height="484" key="FileChooserDialogImpl/0.38.1920.1042@0.38.1920.1042" timestamp="1646097709200" />
-    <state width="1866" height="222" key="GridCell.Tab.0.bottom" timestamp="1647504067935">
+    <state width="1866" height="356" key="GridCell.Tab.0.bottom" timestamp="1648880747744">
       <screen x="0" y="38" width="1920" height="1042" />
     </state>
     <state width="1314" height="469" key="GridCell.Tab.0.bottom/0.38.1368.730@0.38.1368.730" timestamp="1646805199703" />
-    <state width="1866" height="222" key="GridCell.Tab.0.bottom/0.38.1920.1042@0.38.1920.1042" timestamp="1647504067935" />
-    <state width="1866" height="222" key="GridCell.Tab.0.center" timestamp="1647504067935">
+    <state width="1866" height="356" key="GridCell.Tab.0.bottom/0.38.1920.1042@0.38.1920.1042" timestamp="1648880747744" />
+    <state width="1866" height="356" key="GridCell.Tab.0.center" timestamp="1648880747744">
       <screen x="0" y="38" width="1920" height="1042" />
     </state>
     <state width="1314" height="469" key="GridCell.Tab.0.center/0.38.1368.730@0.38.1368.730" timestamp="1646805199702" />
-    <state width="1866" height="222" key="GridCell.Tab.0.center/0.38.1920.1042@0.38.1920.1042" timestamp="1647504067935" />
-    <state width="1866" height="222" key="GridCell.Tab.0.left" timestamp="1647504067935">
+    <state width="1866" height="356" key="GridCell.Tab.0.center/0.38.1920.1042@0.38.1920.1042" timestamp="1648880747744" />
+    <state width="1866" height="356" key="GridCell.Tab.0.left" timestamp="1648880747743">
       <screen x="0" y="38" width="1920" height="1042" />
     </state>
     <state width="1314" height="469" key="GridCell.Tab.0.left/0.38.1368.730@0.38.1368.730" timestamp="1646805199701" />
-    <state width="1866" height="222" key="GridCell.Tab.0.left/0.38.1920.1042@0.38.1920.1042" timestamp="1647504067935" />
-    <state width="1866" height="222" key="GridCell.Tab.0.right" timestamp="1647504067935">
+    <state width="1866" height="356" key="GridCell.Tab.0.left/0.38.1920.1042@0.38.1920.1042" timestamp="1648880747743" />
+    <state width="1866" height="356" key="GridCell.Tab.0.right" timestamp="1648880747744">
       <screen x="0" y="38" width="1920" height="1042" />
     </state>
     <state width="1314" height="469" key="GridCell.Tab.0.right/0.38.1368.730@0.38.1368.730" timestamp="1646805199702" />
-    <state width="1866" height="222" key="GridCell.Tab.0.right/0.38.1920.1042@0.38.1920.1042" timestamp="1647504067935" />
-    <state width="1866" height="222" key="GridCell.Tab.1.bottom" timestamp="1647504067936">
+    <state width="1866" height="356" key="GridCell.Tab.0.right/0.38.1920.1042@0.38.1920.1042" timestamp="1648880747744" />
+    <state width="1866" height="356" key="GridCell.Tab.1.bottom" timestamp="1648880747744">
       <screen x="0" y="38" width="1920" height="1042" />
     </state>
     <state width="1314" height="469" key="GridCell.Tab.1.bottom/0.38.1368.730@0.38.1368.730" timestamp="1646805199705" />
-    <state width="1866" height="222" key="GridCell.Tab.1.bottom/0.38.1920.1042@0.38.1920.1042" timestamp="1647504067936" />
-    <state width="1866" height="222" key="GridCell.Tab.1.center" timestamp="1647504067935">
+    <state width="1866" height="356" key="GridCell.Tab.1.bottom/0.38.1920.1042@0.38.1920.1042" timestamp="1648880747744" />
+    <state width="1866" height="356" key="GridCell.Tab.1.center" timestamp="1648880747744">
       <screen x="0" y="38" width="1920" height="1042" />
     </state>
     <state width="1314" height="469" key="GridCell.Tab.1.center/0.38.1368.730@0.38.1368.730" timestamp="1646805199704" />
-    <state width="1866" height="222" key="GridCell.Tab.1.center/0.38.1920.1042@0.38.1920.1042" timestamp="1647504067935" />
-    <state width="1866" height="222" key="GridCell.Tab.1.left" timestamp="1647504067935">
+    <state width="1866" height="356" key="GridCell.Tab.1.center/0.38.1920.1042@0.38.1920.1042" timestamp="1648880747744" />
+    <state width="1866" height="356" key="GridCell.Tab.1.left" timestamp="1648880747744">
       <screen x="0" y="38" width="1920" height="1042" />
     </state>
     <state width="1314" height="469" key="GridCell.Tab.1.left/0.38.1368.730@0.38.1368.730" timestamp="1646805199703" />
-    <state width="1866" height="222" key="GridCell.Tab.1.left/0.38.1920.1042@0.38.1920.1042" timestamp="1647504067935" />
-    <state width="1866" height="222" key="GridCell.Tab.1.right" timestamp="1647504067936">
+    <state width="1866" height="356" key="GridCell.Tab.1.left/0.38.1920.1042@0.38.1920.1042" timestamp="1648880747744" />
+    <state width="1866" height="356" key="GridCell.Tab.1.right" timestamp="1648880747744">
       <screen x="0" y="38" width="1920" height="1042" />
     </state>
     <state width="1314" height="469" key="GridCell.Tab.1.right/0.38.1368.730@0.38.1368.730" timestamp="1646805199704" />
-    <state width="1866" height="222" key="GridCell.Tab.1.right/0.38.1920.1042@0.38.1920.1042" timestamp="1647504067936" />
-    <state x="441" y="194" key="SettingsEditor" timestamp="1646098105580">
+    <state width="1866" height="356" key="GridCell.Tab.1.right/0.38.1920.1042@0.38.1920.1042" timestamp="1648880747744" />
+    <state x="555" y="277" width="800" height="564" key="Vcs.Push.Dialog.v2" timestamp="1647504856512">
       <screen x="0" y="38" width="1920" height="1042" />
     </state>
-    <state x="441" y="194" key="SettingsEditor/0.38.1920.1042@0.38.1920.1042" timestamp="1646098105580" />
-    <state x="555" y="277" width="800" height="564" key="Vcs.Push.Dialog.v2" timestamp="1646360212689">
+    <state x="555" y="277" width="800" height="564" key="Vcs.Push.Dialog.v2/0.38.1920.1042@0.38.1920.1042" timestamp="1647504856512" />
+    <state width="960" height="521" key="XDebugger.FullValuePopup" timestamp="1647916029499">
       <screen x="0" y="38" width="1920" height="1042" />
     </state>
-    <state x="555" y="277" width="800" height="564" key="Vcs.Push.Dialog.v2/0.38.1920.1042@0.38.1920.1042" timestamp="1646360212689" />
-    <state width="960" height="521" key="XDebugger.FullValuePopup" timestamp="1645756212324">
+    <state width="960" height="521" key="XDebugger.FullValuePopup/0.38.1920.1042@0.38.1920.1042" timestamp="1647916029499" />
+    <state x="100" y="138" width="1720" height="842" key="com.intellij.history.integration.ui.views.FileHistoryDialog" timestamp="1655254777063">
       <screen x="0" y="38" width="1920" height="1042" />
     </state>
-    <state width="960" height="521" key="XDebugger.FullValuePopup/0.38.1920.1042@0.38.1920.1042" timestamp="1645756212324" />
-    <state x="570" y="172" width="770" height="773" key="com.intellij.openapi.editor.actions.MultiplePasteAction$ClipboardContentChooser" timestamp="1647498718925">
+    <state x="100" y="138" width="1720" height="842" key="com.intellij.history.integration.ui.views.FileHistoryDialog/0.38.1920.1042@0.38.1920.1042" timestamp="1655254777063" />
+    <state x="570" y="172" width="770" height="773" key="com.intellij.openapi.editor.actions.MultiplePasteAction$ClipboardContentChooser" timestamp="1647676201736">
       <screen x="0" y="38" width="1920" height="1042" />
     </state>
-    <state x="570" y="172" width="770" height="773" key="com.intellij.openapi.editor.actions.MultiplePasteAction$ClipboardContentChooser/0.38.1920.1042@0.38.1920.1042" timestamp="1647498718925" />
-    <state x="652" y="245" width="788" height="628" key="find.popup" timestamp="1647484999970">
+    <state x="570" y="172" width="770" height="773" key="com.intellij.openapi.editor.actions.MultiplePasteAction$ClipboardContentChooser/0.38.1920.1042@0.38.1920.1042" timestamp="1647676201736" />
+    <state x="652" y="245" width="788" height="628" key="find.popup" timestamp="1647913173521">
       <screen x="0" y="38" width="1920" height="1042" />
     </state>
-    <state x="652" y="245" width="788" height="628" key="find.popup/0.38.1920.1042@0.38.1920.1042" timestamp="1647484999970" />
+    <state x="652" y="245" width="788" height="628" key="find.popup/0.38.1920.1042@0.38.1920.1042" timestamp="1647913173521" />
     <state x="624" y="205" width="672" height="676" key="search.everywhere.popup" timestamp="1647484986095">
       <screen x="0" y="38" width="1920" height="1042" />
     </state>

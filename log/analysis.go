@@ -6,8 +6,8 @@ package log
 
 import (
 	"errors"
+	"k8s.io/klog-controller/common"
 	"k8s.io/klog/v2"
-	"k8s.io/log-controller/common"
 	"strconv"
 )
 

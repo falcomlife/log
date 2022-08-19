@@ -24,24 +24,24 @@ import (
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"
 	flowcontrol "k8s.io/client-go/util/flowcontrol"
-	logcontrollerv1alpha1 "k8s.io/log-controller/pkg/generated/clientset/versioned/typed/logcontroller/v1alpha1"
+	klogcontrollerv1alpha1 "k8s.io/klog-controller/pkg/generated/clientset/versioned/typed/klogcontroller/v1alpha1"
 )
 
 type Interface interface {
 	Discovery() discovery.DiscoveryInterface
-	LogcontrollerV1alpha1() logcontrollerv1alpha1.LogcontrollerV1alpha1Interface
+	KlogcontrollerV1alpha1() klogcontrollerv1alpha1.KlogcontrollerV1alpha1Interface
 }
 
 // Clientset contains the clients for groups. Each group has exactly one
 // version included in a Clientset.
 type Clientset struct {
 	*discovery.DiscoveryClient
-	logcontrollerV1alpha1 *logcontrollerv1alpha1.LogcontrollerV1alpha1Client
+	klogcontrollerV1alpha1 *klogcontrollerv1alpha1.KlogcontrollerV1alpha1Client
 }
 
-// LogcontrollerV1alpha1 retrieves the LogcontrollerV1alpha1Client
-func (c *Clientset) LogcontrollerV1alpha1() logcontrollerv1alpha1.LogcontrollerV1alpha1Interface {
-	return c.logcontrollerV1alpha1
+// KlogcontrollerV1alpha1 retrieves the KlogcontrollerV1alpha1Client
+func (c *Clientset) KlogcontrollerV1alpha1() klogcontrollerv1alpha1.KlogcontrollerV1alpha1Interface {
+	return c.klogcontrollerV1alpha1
 }
 
 // Discovery retrieves the DiscoveryClient
@@ -65,7 +65,7 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 	}
 	var cs Clientset
 	var err error
-	cs.logcontrollerV1alpha1, err = logcontrollerv1alpha1.NewForConfig(&configShallowCopy)
+	cs.klogcontrollerV1alpha1, err = klogcontrollerv1alpha1.NewForConfig(&configShallowCopy)
 	if err != nil {
 		return nil, err
 	}
@@ -81,7 +81,7 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 // panics if there is an error in the config.
 func NewForConfigOrDie(c *rest.Config) *Clientset {
 	var cs Clientset
-	cs.logcontrollerV1alpha1 = logcontrollerv1alpha1.NewForConfigOrDie(c)
+	cs.klogcontrollerV1alpha1 = klogcontrollerv1alpha1.NewForConfigOrDie(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClientForConfigOrDie(c)
 	return &cs
@@ -90,7 +90,7 @@ func NewForConfigOrDie(c *rest.Config) *Clientset {
 // New creates a new Clientset for the given RESTClient.
 func New(c rest.Interface) *Clientset {
 	var cs Clientset
-	cs.logcontrollerV1alpha1 = logcontrollerv1alpha1.New(c)
+	cs.klogcontrollerV1alpha1 = klogcontrollerv1alpha1.New(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClient(c)
 	return &cs

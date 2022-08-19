@@ -7,6 +7,7 @@ ARG CONTAINERNAME
 WORKDIR /opt
 #copy config to container
 COPY microservice.jar /opt
+RUN ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
 ENV LANG=en_US.UTF-8 \
     LC_ALL=en_US.UTF-8 \
     LC_CTYPE=en_US.UTF-8

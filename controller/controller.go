@@ -26,19 +26,19 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
+	"k8s.io/klog-controller/log"
+	"k8s.io/klog-controller/pkg/apis/klogcontroller/v1alpha1"
 	"k8s.io/klog/v2"
-	"k8s.io/log-controller/log"
-	"k8s.io/log-controller/pkg/apis/logcontroller/v1alpha1"
 	"sync"
 
 	appsinformers "k8s.io/client-go/informers/apps/v1"
 	coreinformers "k8s.io/client-go/informers/core/v1"
 	appslisters "k8s.io/client-go/listers/apps/v1"
-	logv1alpha1 "k8s.io/log-controller/pkg/apis/logcontroller/v1alpha1"
-	clientset "k8s.io/log-controller/pkg/generated/clientset/versioned"
-	logscheme "k8s.io/log-controller/pkg/generated/clientset/versioned/scheme"
-	informers "k8s.io/log-controller/pkg/generated/informers/externalversions/logcontroller/v1alpha1"
-	listers "k8s.io/log-controller/pkg/generated/listers/logcontroller/v1alpha1"
+	logv1alpha1 "k8s.io/klog-controller/pkg/apis/klogcontroller/v1alpha1"
+	clientset "k8s.io/klog-controller/pkg/generated/clientset/versioned"
+	logscheme "k8s.io/klog-controller/pkg/generated/clientset/versioned/scheme"
+	informers "k8s.io/klog-controller/pkg/generated/informers/externalversions/klogcontroller/v1alpha1"
+	listers "k8s.io/klog-controller/pkg/generated/listers/klogcontroller/v1alpha1"
 )
 
 const controllerAgentName = "log-controller"
@@ -121,9 +121,9 @@ type Controller struct {
 	//NodeCpuAnalysis          map[string]*log.NodeSample
 	//NodeMemoryAnalysis       map[string]*log.NodeSample
 	Warnings   []*log.WarningList
-	logsLister listers.LogLister
+	logsLister listers.KlogLister
 	logsSynced cache.InformerSynced
-	Log        *logv1alpha1.Log
+	Log        *logv1alpha1.Klog
 	// workqueue is a rate limited work queue. This is used to queue work to be
 	// processed instead of performing it as soon as a change happens. This
 	// means we can ensure we only process a fixed amount of resources at a
@@ -142,7 +142,7 @@ func NewController(
 	kubeclientset kubernetes.Interface,
 	logclientset clientset.Interface,
 	deploymentInformer appsinformers.DeploymentInformer,
-	logInformer informers.LogInformer,
+	logInformer informers.KlogInformer,
 	nodeInformer coreinformers.NodeInformer) *Controller {
 
 	// Create event broadcaster

@@ -1,7 +1,7 @@
 package log
 
 import (
-	"k8s.io/log-controller/common"
+	"k8s.io/klog-controller/common"
 	"time"
 )
 

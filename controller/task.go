@@ -6,9 +6,9 @@ import (
 	"github.com/robfig/cron/v3"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/cache"
+	"k8s.io/klog-controller/db"
+	"k8s.io/klog-controller/log"
 	"k8s.io/klog/v2"
-	"k8s.io/log-controller/db"
-	"k8s.io/log-controller/log"
 	"math"
 	"os"
 	"strconv"
@@ -113,7 +113,7 @@ func event(c *Controller) {
 		return
 	} else {
 		namespace, name, err := cache.SplitMetaNamespaceKey(key)
-		log, err := c.logsLister.Logs(namespace).Get(name)
+		log, err := c.logsLister.Klogs(namespace).Get(name)
 		if err != nil {
 			klog.Error(err)
 			return
