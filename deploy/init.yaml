@@ -17,19 +17,19 @@ type: kubernetes.io/dockerconfigjson
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
-  name: logs.logcontroller.k8s.io
+  name: klogs.klogcontroller.k8s.io
 spec:
-  group: logcontroller.k8s.io
+  group: klogcontroller.k8s.io
   version: v1alpha1
   names:
-    kind: Log
-    plural: logs
+    kind: Klog
+    plural: klogs
   scope: Namespaced
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: log-binding
+  name: klog-binding
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
@@ -55,25 +55,26 @@ spec:
         app: klog
     spec:
       imagePullSecrets:
-        - name: registry-pull-secret
+      - name: registry-pull-secret
       containers:
-        - command:
-            - /opt/log-controller
-          image: swr.cn-north-4.myhuaweicloud.com/cotte-internal/log:0.0.3-release
-          imagePullPolicy: Always
+      - command:
+        - /opt/klog-controller
+        - -env=prod
+        image: swr.cn-north-4.myhuaweicloud.com/cotte-internal/log:0.0.7-release
+        imagePullPolicy: Always
+        name: klog
+        ports:
+        - containerPort: 8080
           name: klog
-          ports:
-            - containerPort: 8080
-              name: klog
-              protocol: TCP
-          resources:
-            limits:
-              cpu: 500m
-              memory: 1200Mi
-            requests:
-              cpu: 50m
-              memory: 1000Mi
-      serviceAccountName: default
+          protocol: TCP
+        resources:
+          limits:
+            cpu: 500m
+            memory: 1200Mi
+          requests:
+            cpu: 50m
+            memory: 1000Mi
+      serviceAccountName: default            
 ---
 apiVersion: v1
 kind: Service
